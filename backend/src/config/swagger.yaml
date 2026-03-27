@@ -1,0 +1,117 @@
+openapi: 3.0.0
+info:
+  title: Trimurti Transport VRMS API
+  version: 1.0.0
+  description: API documentation for the Trimurti Transport Vehicle Rental Management System
+servers:
+  - url: http://localhost:5000
+    description: Local server
+paths:
+  /api/auth/register:
+    post:
+      summary: Register a new user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '201':
+          description: User registered successfully
+  /api/auth/login:
+    post:
+      summary: Login user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Logged in successfully
+  /api/vehicles:
+    get:
+      summary: List vehicles (paginated)
+      tags: [Vehicles]
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of vehicles
+    post:
+      summary: Create vehicle
+      tags: [Vehicles]
+      responses:
+        '201':
+          description: Vehicle created
+  /api/bookings:
+    post:
+      summary: Create booking
+      tags: [Bookings]
+      responses:
+        '201':
+          description: Booking created
+    get:
+      summary: Get current user's bookings
+      tags: [Bookings]
+      responses:
+        '200':
+          description: List of bookings
+  /api/bookings/{id}/cancel:
+    put:
+      summary: Cancel booking
+      tags: [Bookings]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Booking cancelled
+  /api/returns:
+    post:
+      summary: Process vehicle return
+      tags: [Returns]
+      responses:
+        '201':
+          description: Return processed
+  /api/payments:
+    post:
+      summary: Create payment
+      tags: [Payments]
+      responses:
+        '201':
+          description: Payment recorded
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - bearerAuth: []
