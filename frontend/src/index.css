@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+* {
+  font-family: 'Inter', sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: linear-gradient(to bottom right, #020617, #0f172a, #000000);
+  color: #e2e8f0;
+}
+
+/* Glassmorphism Utilities */
+.glass {
+  @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl;
+}
+
+.glass-glow {
+  @apply glass shadow-[0_0_40px_rgba(0,255,200,0.15)];
+}
+
+/* Gradient Text */
+.gradient-text {
+  @apply bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent;
+}
+
+.gradient-text-purple {
+  @apply bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent;
+}
+
+/* Gradient Buttons */
+.btn-gradient {
+  @apply bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-600 hover:to-cyan-600 transition-all duration-300 rounded-xl font-semibold;
+}
+
+.btn-gradient-hover {
+  @apply hover:shadow-[0_0_30px_rgba(168,85,247,0.4)] hover:scale-105;
+}
+
+/* Glow Blobs */
+.glow-blob {
+  @apply absolute blur-3xl opacity-30 -z-10;
+}
+
+.glow-blob-purple {
+  @apply glow-blob bg-purple-600;
+}
+
+.glow-blob-cyan {
+  @apply glow-blob bg-cyan-500;
+}
+
+.glow-blob-blue {
+  @apply glow-blob bg-blue-600;
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+/* Cards Hover Effect */
+.card-hover {
+  @apply transition-all duration-300 hover:translate-y-[-8px] hover:shadow-[0_0_50px_rgba(168,85,247,0.3)];
+}
+
+/* Section Spacing */
+.section-padding {
+  @apply py-20 md:py-32;
+}
+
+/* Max Width Container */
+.container-max {
+  @apply max-w-7xl mx-auto px-6;
+}
