@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
-const { USER_ROLES } = require('../config/constants');
+const { USER_ROLES, USER_STATUS } = require('../config/constants');
 
 const userSchema = new mongoose.Schema(
   {
@@ -21,10 +21,22 @@ const userSchema = new mongoose.Schema(
       required: true,
       minlength: 6,
     },
+    phone: {
+      type: String,
+      trim: true,
+    },
     role: {
       type: String,
       enum: Object.values(USER_ROLES),
       default: USER_ROLES.CUSTOMER,
+    },
+    status: {
+      type: String,
+      enum: Object.values(USER_STATUS),
+      default: function() {
+        // Customers are active by default, staff pending
+        return this.role === USER_ROLES.STAFF ? USER_STATUS.PENDING : USER_STATUS.ACTIVE;
+      }
     },
   },
   { timestamps: true }
@@ -40,7 +52,5 @@ userSchema.pre('save', async function (next) {
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return bcrypt.compare(enteredPassword, this.password);
 };
-
-userSchema.index({ email: 1 }, { unique: true });
 
 module.exports = mongoose.model('User', userSchema);

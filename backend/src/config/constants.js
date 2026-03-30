@@ -4,6 +4,11 @@ module.exports = {
     STAFF: 'staff',
     ADMIN: 'admin',
   },
+  USER_STATUS: {
+    PENDING: 'pending',
+    ACTIVE: 'active',
+    REJECTED: 'rejected',
+  },
   BOOKING_STATUS: {
     PENDING: 'pending',
     CONFIRMED: 'confirmed',

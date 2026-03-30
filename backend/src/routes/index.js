@@ -6,8 +6,10 @@ const vehicleRoutes = require('./vehicleRoutes');
 const bookingRoutes = require('./bookingRoutes');
 const returnRoutes = require('./returnRoutes');
 const paymentRoutes = require('./paymentRoutes');
+const userRoutes = require('./userRoutes');
 
 router.use('/auth', authRoutes);
+router.use('/users', userRoutes);
 router.use('/vehicles', vehicleRoutes);
 router.use('/bookings', bookingRoutes);
 router.use('/returns', returnRoutes);

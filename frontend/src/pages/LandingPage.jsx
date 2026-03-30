@@ -1,5 +1,6 @@
 import { Star, Zap, Shield, TrendingUp, ArrowRight, Check } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import Card from '../components/Card'
 import { getDashboardStats, getBookingStats } from '../services/api'
 import { formatNumber, formatLargeNumber, formatCurrency, formatPercentage } from '../utils/formatters'
@@ -92,13 +93,31 @@ export default function LandingPage() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mb-20">
-            <button className="btn-gradient px-8 py-3 text-white flex items-center gap-2 group w-full sm:w-auto justify-center">
-              Start Free Trial
+            <Link to="/register" className="btn-gradient px-8 py-3 text-white flex items-center gap-2 group w-full sm:w-auto justify-center rounded-lg hover:shadow-lg hover:shadow-purple-500/50 transition">
+              Get Started
               <ArrowRight size={18} className="group-hover:translate-x-1 transition" />
-            </button>
-            <button className="glass px-8 py-3 text-white hover:bg-gray-800 transition w-full sm:w-auto">
+            </Link>
+            <button className="glass px-8 py-3 text-white hover:bg-gray-800 transition w-full sm:w-auto rounded-lg">
               Watch Demo
             </button>
+          </div>
+
+          {/* Role-based Login Links */}
+          <div className="mb-12 pb-8 border-b border-gray-800">
+            <p className="text-gray-400 text-sm mb-4">Already have an account?</p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <Link to="/login" className="px-4 py-2 text-sm text-purple-400 hover:text-purple-300 transition font-medium">
+                🛒 Customer Login
+              </Link>
+              <span className="text-gray-600">•</span>
+              <Link to="/login" className="px-4 py-2 text-sm text-blue-400 hover:text-blue-300 transition font-medium">
+                👷 Staff Portal
+              </Link>
+              <span className="text-gray-600">•</span>
+              <Link to="/login" className="px-4 py-2 text-sm text-amber-400 hover:text-amber-300 transition font-medium">
+                🔐 Admin Access
+              </Link>
+            </div>
           </div>
 
           {/* Stats Preview */}
