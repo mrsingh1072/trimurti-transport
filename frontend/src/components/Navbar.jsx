@@ -5,7 +5,7 @@ export default function Navbar({ onNavigate }) {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
-    <nav className="fixed top-0 w-full z-50 backdrop-blur-xl bg-black/20 border-b border-white/10">
+    <nav className="fixed top-0 w-full z-50 bg-gray-950 border-b border-gray-800">
       <div className="container-max flex items-center justify-between h-20">
         {/* Logo */}
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => onNavigate('landing')}>
@@ -32,7 +32,7 @@ export default function Navbar({ onNavigate }) {
           </button>
           <button 
             onClick={() => onNavigate('dashboard')}
-            className="btn-gradient btn-gradient-hover px-6 py-2 text-white"
+            className="btn-gradient px-6 py-2 text-white"
           >
             Get Started
           </button>
@@ -46,7 +46,7 @@ export default function Navbar({ onNavigate }) {
 
       {/* Mobile Menu */}
       {isOpen && (
-        <div className="md:hidden glass-glow border-t border-white/10">
+        <div className="md:hidden bg-gray-950 border-t border-gray-800">
           <div className="container-max py-4 flex flex-col gap-4">
             <a href="#features" className="text-gray-300 hover:text-white transition">Features</a>
             <a href="#how-it-works" className="text-gray-300 hover:text-white transition">How it Works</a>
@@ -59,7 +59,7 @@ export default function Navbar({ onNavigate }) {
             </button>
             <button 
               onClick={() => { onNavigate('dashboard'); setIsOpen(false) }}
-              className="btn-gradient btn-gradient-hover px-6 py-2 text-white"
+              className="btn-gradient px-6 py-2 text-white w-full text-center"
             >
               Get Started
             </button>

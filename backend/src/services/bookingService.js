@@ -140,9 +140,48 @@ const processReturnLogic = async ({ bookingId, actualReturnDate, damageDescripti
   return { booking, finalAmount, lateFee, damageFee, damageDescription };
 };
 
+const getAllBookings = async () => {
+  return Booking.find()
+    .populate('vehicle')
+    .populate('user', 'name email')
+    .sort({ createdAt: -1 });
+};
+
+const getBookingStats = async () => {
+  const [total, active, completed, cancelled] = await Promise.all([
+    Booking.countDocuments(),
+    Booking.countDocuments({ status: BOOKING_STATUS.ONGOING }),
+    Booking.countDocuments({ status: BOOKING_STATUS.COMPLETED }),
+    Booking.countDocuments({ status: BOOKING_STATUS.CANCELLED }),
+  ]);
+
+  // Calculate total revenue from completed bookings
+  const revenueData = await Booking.aggregate([
+    { $match: { status: BOOKING_STATUS.COMPLETED } },
+    {
+      $group: {
+        _id: null,
+        totalRevenue: { $sum: '$finalAmount' },
+      },
+    },
+  ]);
+
+  const totalRevenue = revenueData[0]?.totalRevenue || 0;
+
+  return {
+    totalBookings: total,
+    activeBookings: active,
+    completedBookings: completed,
+    cancelledBookings: cancelled,
+    totalRevenue,
+  };
+};
+
 module.exports = {
   createBooking,
   getUserBookings,
   cancelBooking,
   processReturnLogic,
+  getAllBookings,
+  getBookingStats,
 };

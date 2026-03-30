@@ -4,7 +4,6 @@ export default function Card({ children, className = "", hover = true, glow = fa
       className={`
         glass
         ${hover ? 'card-hover' : ''}
-        ${glow ? 'glass-glow' : ''}
         ${className}
       `}
     >

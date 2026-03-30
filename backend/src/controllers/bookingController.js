@@ -15,8 +15,20 @@ const cancelBooking = async (req, res) => {
   res.json({ message: 'Booking cancelled', booking });
 };
 
+const getAllBookings = async (req, res) => {
+  const bookings = await bookingService.getAllBookings();
+  res.json({ bookings });
+};
+
+const getBookingStats = async (req, res) => {
+  const stats = await bookingService.getBookingStats();
+  res.json(stats);
+};
+
 module.exports = {
   createBooking,
   getMyBookings,
   cancelBooking,
+  getAllBookings,
+  getBookingStats,
 };

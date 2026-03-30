@@ -28,10 +28,22 @@ const deleteVehicle = async (req, res) => {
   res.json({ message: 'Vehicle deleted' });
 };
 
+const getVehicleStats = async (req, res) => {
+  const stats = await vehicleService.getVehicleStats();
+  res.json(stats);
+};
+
+const getVehicleCount = async (req, res) => {
+  const count = await vehicleService.getVehicleCount();
+  res.json(count);
+};
+
 module.exports = {
   createVehicle,
   getVehicles,
   getVehicleById,
   updateVehicle,
   deleteVehicle,
+  getVehicleStats,
+  getVehicleCount,
 };

@@ -49,10 +49,33 @@ const deleteVehicle = async (id) => {
   return vehicle;
 };
 
+const getVehicleStats = async () => {
+  const [total, available] = await Promise.all([
+    Vehicle.countDocuments(),
+    Vehicle.countDocuments({ availability: true }),
+  ]);
+  return {
+    totalVehicles: total,
+    availableVehicles: available,
+    activeBookings: total - available,
+    totalRevenue: 0, // Calculate from completed bookings if needed
+  };
+};
+
+const getVehicleCount = async () => {
+  const [total, available] = await Promise.all([
+    Vehicle.countDocuments(),
+    Vehicle.countDocuments({ availability: true }),
+  ]);
+  return { total, available };
+};
+
 module.exports = {
   createVehicle,
   listVehicles,
   getVehicleById,
   updateVehicle,
   deleteVehicle,
+  getVehicleStats,
+  getVehicleCount,
 };

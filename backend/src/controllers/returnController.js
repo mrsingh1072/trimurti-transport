@@ -5,4 +5,14 @@ const processReturn = async (req, res) => {
   res.status(201).json({ message: 'Return processed', ...result });
 };
 
-module.exports = { processReturn };
+const getReturns = async (req, res) => {
+  const returns = await returnService.getReturns();
+  res.json({ returns });
+};
+
+const getReturnStats = async (req, res) => {
+  const stats = await returnService.getReturnStats();
+  res.json(stats);
+};
+
+module.exports = { processReturn, getReturns, getReturnStats };

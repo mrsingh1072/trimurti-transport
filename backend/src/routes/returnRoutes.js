@@ -15,4 +15,7 @@ router.post(
   returnController.processReturn
 );
 
+router.get('/', returnController.getReturns);
+router.get('/stats', returnController.getReturnStats);
+
 module.exports = router;

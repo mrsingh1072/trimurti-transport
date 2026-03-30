@@ -16,6 +16,8 @@ router.post(
 );
 
 router.get('/', vehicleController.getVehicles);
+router.get('/stats', vehicleController.getVehicleStats);
+router.get('/count', vehicleController.getVehicleCount);
 router.get('/:id', vehicleController.getVehicleById);
 
 router.put(
