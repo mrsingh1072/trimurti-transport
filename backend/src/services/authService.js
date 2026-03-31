@@ -3,11 +3,22 @@ const User = require('../models/User');
 const { USER_STATUS, USER_ROLES } = require('../config/constants');
 
 const generateToken = (user) => {
-  return jwt.sign(
-    { id: user._id, role: user.role, status: user.status },
+  console.log('\n🔐 [GENERATE TOKEN] Creating JWT for user:', user.email);
+  const tokenPayload = { 
+    id: user._id.toString(), 
+    role: user.role, 
+    status: user.status 
+  };
+  console.log('   - Token payload:', tokenPayload);
+  
+  const token = jwt.sign(
+    tokenPayload,
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '1d' }
+    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   );
+  
+  console.log('   - Token generated, length:', token.length);
+  return token;
 };
 
 const register = async ({ name, email, password, phone, role }) => {
@@ -35,29 +46,53 @@ const register = async ({ name, email, password, phone, role }) => {
 };
 
 const login = async ({ email, password }) => {
+  console.log('\n🔑 [LOGIN] ATTEMPT - Email:', email);
+  
   const user = await User.findOne({ email });
   if (!user) {
+    console.log('❌ [LOGIN] USER NOT FOUND - Email:', email);
     const error = new Error('Invalid credentials');
     error.statusCode = 401;
     throw error;
   }
+
+  console.log('✅ [LOGIN] USER FOUND:');
+  console.log('   - ID:', user._id.toString());
+  console.log('   - Email:', user.email);
+  console.log('   - Role:', user.role);
+  console.log('   - Status:', user.status);
 
   const isMatch = await user.matchPassword(password);
   if (!isMatch) {
+    console.log('❌ [LOGIN] PASSWORD MISMATCH');
     const error = new Error('Invalid credentials');
     error.statusCode = 401;
     throw error;
   }
 
+  console.log('✅ [LOGIN] PASSWORD VERIFIED');
+
   // Check if user status is active
   if (user.status !== USER_STATUS.ACTIVE) {
+    console.log('❌ [LOGIN] ACCOUNT NOT ACTIVE - Status:', user.status);
     const error = new Error(`Your account is ${user.status}. Please wait for admin approval.`);
     error.statusCode = 403;
-    error.statusCode = 'ACCOUNT_INACTIVE';
+    error.errorCode = 'ACCOUNT_INACTIVE';
     throw error;
   }
 
+  console.log('✅ [LOGIN] ACCOUNT ACTIVE - Generating token');
+  
   const token = generateToken(user);
+  
+  console.log('✅ [LOGIN] SUCCESS - Token generated');
+  console.log('   - Returning user:', { 
+    id: user._id.toString(),
+    email: user.email,
+    role: user.role,
+    status: user.status
+  });
+  
   return { user, token };
 };
 

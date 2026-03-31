@@ -9,12 +9,25 @@ const apiClient = axios.create({
   }
 })
 
-// Add token to requests if it exists
+// Add token to requests if it exists (but NOT for auth endpoints)
 apiClient.interceptors.request.use(
   config => {
     const token = localStorage.getItem('authToken')
-    if (token) {
+    console.log('\n📤 [API REQUEST]:', config.method.toUpperCase(), config.url);
+    
+    // CRITICAL: Do NOT send token during login/register requests
+    const isAuthEndpoint = config.url.includes('/auth/login') || config.url.includes('/auth/register');
+    
+    if (isAuthEndpoint) {
+      console.log('   ⚠️  Auth endpoint detected - NOT attaching token');
+      // Remove any existing Authorization header
+      delete config.headers.Authorization;
+    } else if (token) {
+      console.log('   ✅ Token found in localStorage, attaching to request');
+      console.log('   - Token length:', token.length);
       config.headers.Authorization = `Bearer ${token}`
+    } else {
+      console.log('   ⚠️  No token in localStorage');
     }
     return config
   },
@@ -23,7 +36,12 @@ apiClient.interceptors.request.use(
 
 // Error handler
 const handleError = (error) => {
-  console.error('API Error:', error.response?.data || error.message)
+  console.error('\n❌ [API ERROR]:', {
+    status: error.response?.status,
+    message: error.response?.data?.message || error.message,
+    url: error.config?.url,
+    method: error.config?.method
+  })
   throw error
 }
 
@@ -113,10 +131,23 @@ export const registerUser = async (userData) => {
 // Login user
 export const loginUser = async (credentials) => {
   try {
+    console.log('\n🔑 [LOGIN] Sending credentials for:', credentials.email);
     const response = await apiClient.post('/auth/login', credentials)
+    
     if (response.data.token) {
+      console.log('✅ [LOGIN] Success - Token received');
+      console.log('   - Token length:', response.data.token.length);
+      console.log('   - User:', { 
+        id: response.data.user?.id,
+        email: response.data.user?.email,
+        role: response.data.user?.role,
+        status: response.data.user?.status
+      });
+      
+      // Store in localStorage
       localStorage.setItem('authToken', response.data.token)
       localStorage.setItem('user', JSON.stringify(response.data.user))
+      console.log('   ✅ Token and user stored in localStorage');
     }
     return response.data
   } catch (error) {
@@ -128,6 +159,25 @@ export const loginUser = async (credentials) => {
 export const logoutUser = () => {
   localStorage.removeItem('authToken')
   localStorage.removeItem('user')
+}
+
+// Verify token (diagnostic endpoint)
+export const verifyToken = async () => {
+  try {
+    const token = localStorage.getItem('authToken')
+    if (!token) {
+      console.log('⚠️  [VERIFY TOKEN] No token in localStorage');
+      return null;
+    }
+    
+    console.log('\n🔐 [VERIFY TOKEN] Testing token validity...');
+    const response = await apiClient.get('/auth/verify-token')
+    console.log('✅ [VERIFY TOKEN] Token is valid:', response.data);
+    return response.data
+  } catch (error) {
+    console.log('❌ [VERIFY TOKEN] Token is invalid or expired');
+    handleError(error)
+  }
 }
 
 // Register staff from admin (no automatic login)

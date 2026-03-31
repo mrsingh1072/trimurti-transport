@@ -10,6 +10,7 @@ const vehicleSchema = new mongoose.Schema(
     category: {
       type: String,
       required: true,
+      enum: ['Car', 'Bike', 'Truck', 'Bus', 'Tractor', 'JCB'],
       trim: true,
     },
     pricePerDay: {
@@ -24,7 +25,8 @@ const vehicleSchema = new mongoose.Schema(
     },
     condition: {
       type: String,
-      default: 'good',
+      enum: ['Good', 'Average', 'Poor'],
+      default: 'Good',
       trim: true,
     },
     location: {

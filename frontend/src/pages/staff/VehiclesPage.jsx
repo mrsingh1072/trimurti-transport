@@ -1,21 +1,49 @@
 import { useEffect, useState } from 'react'
-import { RotateCcw, ChevronDown } from 'lucide-react'
+import { RotateCcw, ChevronDown, Plus, Edit2, Trash2, Filter } from 'lucide-react'
 import StaffLayout from '../../components/StaffLayout'
-import { getVehicles, updateVehicle } from '../../services/api'
+import { getVehicles, createVehicle, updateVehicle, deleteVehicle } from '../../services/api'
+import AddVehicleModal from '../../components/AddVehicleModal'
+import EditVehicleModal from '../../components/EditVehicleModal'
+import ConfirmDialog from '../../components/ConfirmDialog'
+import Toast from '../../components/Toast'
+
+const CATEGORIES = ['Car', 'Bike', 'Truck', 'Bus', 'Tractor', 'JCB']
 
 export default function VehiclesPage() {
   const [vehicles, setVehicles] = useState([])
+  const [filteredVehicles, setFilteredVehicles] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [updating, setUpdating] = useState({})
+  
+  // Modal states
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingVehicle, setEditingVehicle] = useState(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deletingVehicleId, setDeletingVehicleId] = useState(null)
+  
+  // Filter states
+  const [selectedCategory, setSelectedCategory] = useState('all')
+  const [searchTerm, setSearchTerm] = useState('')
+  
+  // Toast state
+  const [toast, setToast] = useState(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     fetchVehicles()
   }, [])
 
+  useEffect(() => {
+    filterVehicles()
+  }, [vehicles, selectedCategory, searchTerm])
+
   const fetchVehicles = async () => {
     try {
       setLoading(true)
+      setError(null)
       const res = await getVehicles()
       const data = res.data || res
       setVehicles(Array.isArray(data) ? data : [])
@@ -24,6 +52,72 @@ export default function VehiclesPage() {
       setError('Failed to load vehicles')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const filterVehicles = () => {
+    let filtered = vehicles
+
+    // Category filter
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter((v) => v.category === selectedCategory)
+    }
+
+    // Search filter
+    if (searchTerm.trim()) {
+      filtered = filtered.filter((v) =>
+        v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        v.location.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    }
+
+    setFilteredVehicles(filtered)
+  }
+
+  const handleAddVehicle = async (formData) => {
+    try {
+      setIsSubmitting(true)
+      await createVehicle(formData)
+      setShowAddModal(false)
+      setToast({ type: 'success', message: 'Vehicle Added Successfully!' })
+      fetchVehicles()
+    } catch (err) {
+      console.error('Error creating vehicle:', err)
+      setToast({ type: 'error', message: 'Failed to create vehicle' })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleEditVehicle = async (formData) => {
+    try {
+      setIsSubmitting(true)
+      await updateVehicle(editingVehicle._id, formData)
+      setShowEditModal(false)
+      setEditingVehicle(null)
+      setToast({ type: 'success', message: 'Vehicle Updated Successfully!' })
+      fetchVehicles()
+    } catch (err) {
+      console.error('Error updating vehicle:', err)
+      setToast({ type: 'error', message: 'Failed to update vehicle' })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleDeleteVehicle = async () => {
+    try {
+      setIsDeleting(true)
+      await deleteVehicle(deletingVehicleId)
+      setShowDeleteConfirm(false)
+      setDeletingVehicleId(null)
+      setToast({ type: 'success', message: 'Vehicle Deleted Successfully!' })
+      fetchVehicles()
+    } catch (err) {
+      console.error('Error deleting vehicle:', err)
+      setToast({ type: 'error', message: 'Failed to delete vehicle' })
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -49,9 +143,10 @@ export default function VehiclesPage() {
             : v
         )
       )
+      setToast({ type: 'success', message: 'Availability Updated!' })
     } catch (err) {
       console.error('Error updating vehicle:', err)
-      alert('Failed to update availability')
+      setToast({ type: 'error', message: 'Failed to update availability' })
     } finally {
       setUpdating((prev) => ({
         ...prev,
@@ -82,9 +177,10 @@ export default function VehiclesPage() {
             : v
         )
       )
+      setToast({ type: 'success', message: 'Condition Updated!' })
     } catch (err) {
       console.error('Error updating vehicle condition:', err)
-      alert('Failed to update condition')
+      setToast({ type: 'error', message: 'Failed to update condition' })
     } finally {
       setUpdating((prev) => ({
         ...prev,
@@ -95,6 +191,9 @@ export default function VehiclesPage() {
 
   const getConditionBadge = (condition) => {
     const badges = {
+      Good: 'bg-green-500/20 text-green-400',
+      Average: 'bg-yellow-500/20 text-yellow-400',
+      Poor: 'bg-red-500/20 text-red-400',
       good: 'bg-green-500/20 text-green-400',
       fair: 'bg-yellow-500/20 text-yellow-400',
       damaged: 'bg-red-500/20 text-red-400',
@@ -111,20 +210,58 @@ export default function VehiclesPage() {
   return (
     <StaffLayout>
       <div className="space-y-6">
-        {/* Header */}
+        {/* Header with Action Buttons */}
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-3xl font-bold text-white mb-2">Manage Vehicles</h2>
-            <p className="text-gray-400">Update vehicle availability and condition</p>
+            <p className="text-gray-400">Add, edit, and manage your vehicle fleet</p>
           </div>
-          <button
-            onClick={fetchVehicles}
-            disabled={loading}
-            className="px-6 py-2 bg-gradient-to-r from-purple-500 to-cyan-500 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/50 transition disabled:opacity-50 flex items-center gap-2"
-          >
-            <RotateCcw size={18} />
-            Refresh
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={fetchVehicles}
+              disabled={loading}
+              className="px-6 py-2 bg-gray-800/50 border border-gray-700 text-white rounded-lg hover:bg-gray-800 transition disabled:opacity-50 flex items-center gap-2"
+            >
+              <RotateCcw size={18} />
+              Refresh
+            </button>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="px-6 py-2 bg-gradient-to-r from-purple-500 to-cyan-500 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/50 transition flex items-center gap-2"
+            >
+              <Plus size={18} />
+              Add Vehicle
+            </button>
+          </div>
+        </div>
+
+        {/* Filter Section */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          {/* Search Filter */}
+          <input
+            type="text"
+            placeholder="Search by name or location..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="flex-1 bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition"
+          />
+
+          {/* Category Filter */}
+          <div className="relative">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500 transition appearance-none cursor-pointer pr-10"
+            >
+              <option value="all">All Categories</option>
+              {CATEGORIES.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+            <Filter size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          </div>
         </div>
 
         {/* Error State */}
@@ -147,36 +284,60 @@ export default function VehiclesPage() {
               </div>
             ))}
           </div>
-        ) : vehicles.length === 0 ? (
+        ) : filteredVehicles.length === 0 ? (
           <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-12 text-center">
-            <p className="text-gray-400 text-lg">No vehicles found</p>
+            <p className="text-gray-400 text-lg">
+              {vehicles.length === 0 ? 'No vehicles found. Start by adding one!' : 'No vehicles match your filters'}
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {vehicles.map((vehicle) => (
+            {filteredVehicles.map((vehicle) => (
               <div
                 key={vehicle._id}
                 className="bg-gray-800/50 border border-gray-700 rounded-lg p-6 hover:border-gray-600 transition"
               >
-                {/* Vehicle Name */}
-                <div className="mb-4">
-                  <h3 className="text-xl font-bold text-white mb-2">{vehicle.name}</h3>
+                {/* Vehicle Header */}
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-white mb-2">{vehicle.name}</h3>
+                    <div className="flex gap-2 flex-wrap">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${getAvailabilityBadge(
+                          vehicle.availability
+                        )}`}
+                      >
+                        {vehicle.availability ? '✓ Available' : '✗ Not Available'}
+                      </span>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${getConditionBadge(
+                          vehicle.condition
+                        )}`}
+                      >
+                        {vehicle.condition}
+                      </span>
+                    </div>
+                  </div>
+                  {/* Action Buttons */}
                   <div className="flex gap-2">
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${getAvailabilityBadge(
-                        vehicle.availability
-                      )}`}
+                    <button
+                      onClick={() => {
+                        setEditingVehicle(vehicle)
+                        setShowEditModal(true)
+                      }}
+                      className="p-2 bg-blue-500/20 text-blue-400 rounded hover:bg-blue-500/30 transition"
                     >
-                      {vehicle.availability ? '✓ Available' : '✗ Not Available'}
-                    </span>
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${getConditionBadge(
-                        vehicle.condition
-                      )}`}
+                      <Edit2 size={18} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setDeletingVehicleId(vehicle._id)
+                        setShowDeleteConfirm(true)
+                      }}
+                      className="p-2 bg-red-500/20 text-red-400 rounded hover:bg-red-500/30 transition"
                     >
-                      {vehicle.condition?.charAt(0).toUpperCase() +
-                        vehicle.condition?.slice(1)}
-                    </span>
+                      <Trash2 size={18} />
+                    </button>
                   </div>
                 </div>
 
@@ -184,15 +345,15 @@ export default function VehiclesPage() {
                 <div className="space-y-3 mb-6 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-400">Category</span>
-                    <span className="text-white">{vehicle.category}</span>
+                    <span className="text-white font-medium">{vehicle.category}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400">Location</span>
-                    <span className="text-white">{vehicle.location}</span>
+                    <span className="text-white font-medium">{vehicle.location}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400">Price/Day</span>
-                    <span className="text-white">₹{vehicle.pricePerDay?.toLocaleString() || 0}</span>
+                    <span className="text-white font-medium">₹{vehicle.pricePerDay?.toLocaleString() || 0}</span>
                   </div>
                 </div>
 
@@ -223,16 +384,16 @@ export default function VehiclesPage() {
                     <p className="text-sm font-medium text-gray-300 mb-2">Vehicle Condition</p>
                     <div className="relative">
                       <select
-                        value={vehicle.condition || 'good'}
+                        value={vehicle.condition || 'Good'}
                         onChange={(e) =>
                           handleConditionChange(vehicle, e.target.value)
                         }
                         disabled={updating[vehicle._id]}
                         className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500 transition disabled:opacity-50 appearance-none cursor-pointer"
                       >
-                        <option value="good">Good Condition</option>
-                        <option value="fair">Fair Condition</option>
-                        <option value="damaged">Damaged</option>
+                        <option value="Good">Good</option>
+                        <option value="Average">Average</option>
+                        <option value="Poor">Poor</option>
                       </select>
                       <ChevronDown
                         size={18}
@@ -270,6 +431,48 @@ export default function VehiclesPage() {
           </div>
         )}
       </div>
+
+      {/* Modals */}
+      <AddVehicleModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSubmit={handleAddVehicle}
+        isLoading={isSubmitting}
+      />
+
+      <EditVehicleModal
+        isOpen={showEditModal}
+        vehicle={editingVehicle}
+        onClose={() => {
+          setShowEditModal(false)
+          setEditingVehicle(null)
+        }}
+        onSubmit={handleEditVehicle}
+        isLoading={isSubmitting}
+      />
+
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Delete Vehicle"
+        message="Are you sure you want to delete this vehicle? This action cannot be undone."
+        confirmText="Delete"
+        onConfirm={handleDeleteVehicle}
+        onCancel={() => {
+          setShowDeleteConfirm(false)
+          setDeletingVehicleId(null)
+        }}
+        isLoading={isDeleting}
+        isDangerous={true}
+      />
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </StaffLayout>
   )
 }

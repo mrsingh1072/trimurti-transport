@@ -20,6 +20,7 @@ const seed = async () => {
       email: 'prajwalrajput2004@gmail.com',
       password: 'Prajwal@1100',
       role: USER_ROLES.ADMIN,
+      status: 'active', // Explicitly set to active
     });
 
     const staff = await User.create({
@@ -27,6 +28,7 @@ const seed = async () => {
       email: 'staff@trimurti.com',
       password: 'Staff@123',
       role: USER_ROLES.STAFF,
+      status: 'active', // Explicitly set to active for testing
     });
 
     const customer = await User.create({
@@ -38,28 +40,60 @@ const seed = async () => {
 
     const vehicles = await Vehicle.insertMany([
       {
-        name: 'Toyota Innova',
-        category: 'SUV',
+        name: 'Toyota Fortuner',
+        category: 'Car',
         pricePerDay: 2500,
         availability: true,
-        condition: 'good',
+        condition: 'Good',
         location: 'Pune',
       },
       {
         name: 'Maruti Swift',
-        category: 'Hatchback',
+        category: 'Car',
         pricePerDay: 1500,
         availability: true,
-        condition: 'good',
+        condition: 'Good',
         location: 'Pune',
       },
       {
         name: 'Tata Ace',
-        category: 'Commercial',
+        category: 'Truck',
         pricePerDay: 1800,
         availability: true,
-        condition: 'good',
+        condition: 'Good',
         location: 'Mumbai',
+      },
+      {
+        name: 'Royal Enfield Bullet',
+        category: 'Bike',
+        pricePerDay: 800,
+        availability: true,
+        condition: 'Good',
+        location: 'Pune',
+      },
+      {
+        name: 'Tata Bus',
+        category: 'Bus',
+        pricePerDay: 3500,
+        availability: false,
+        condition: 'Average',
+        location: 'Mumbai',
+      },
+      {
+        name: 'JCB Excavator',
+        category: 'JCB',
+        pricePerDay: 5000,
+        availability: true,
+        condition: 'Good',
+        location: 'Delhi',
+      },
+      {
+        name: 'Mahindra Tractor',
+        category: 'Tractor',
+        pricePerDay: 2000,
+        availability: true,
+        condition: 'Good',
+        location: 'Haryana',
       },
     ]);
 
