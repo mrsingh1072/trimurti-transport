@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Calendar, Truck, X, Edit2, Loader, AlertCircle } from 'lucide-react'
+import { Calendar, Truck, X, Edit2, Loader, AlertCircle, CreditCard, FileText } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
 import EditBookingModal from '../components/EditBookingModal'
-import { getUserBookings, cancelBooking } from '../services/api'
+import PaymentCheckoutModal from '../components/PaymentCheckoutModal'
+import PaymentDetailsModal from '../components/PaymentDetailsModal'
+import { getUserBookings, cancelBooking, getPaymentById } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 
 export default function MyBookingsPage() {
@@ -13,6 +15,11 @@ export default function MyBookingsPage() {
   const [cancelError, setCancelError] = useState('')
   const [editingBooking, setEditingBooking] = useState(null)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [paymentBooking, setPaymentBooking] = useState(null)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [selectedPayment, setSelectedPayment] = useState(null)
+  const [showPaymentDetails, setShowPaymentDetails] = useState(false)
+  const [loadingPaymentId, setLoadingPaymentId] = useState(null)
 
   useEffect(() => {
     fetchBookings()
@@ -53,6 +60,34 @@ export default function MyBookingsPage() {
     setShowEditModal(true)
   }
 
+  const handlePayNow = (booking) => {
+    setPaymentBooking(booking)
+    setShowPaymentModal(true)
+  }
+
+  const handlePaymentSuccess = async (transactionId) => {
+    setShowPaymentModal(false)
+    setPaymentBooking(null)
+    // Refresh bookings to show updated payment status
+    await fetchBookings()
+  }
+
+  const handleViewPaymentDetails = async (booking) => {
+    if (!booking.paymentId) return
+
+    setLoadingPaymentId(booking._id)
+    try {
+      const paymentData = await getPaymentById(booking.paymentId)
+      setSelectedPayment(paymentData)
+      setShowPaymentDetails(true)
+    } catch (err) {
+      console.error('Failed to load payment details:', err)
+      alert('Could not load payment details')
+    } finally {
+      setLoadingPaymentId(null)
+    }
+  }
+
   const getStatusColor = (status) => {
     switch (status.toLowerCase()) {
       case 'confirmed':
@@ -69,12 +104,42 @@ export default function MyBookingsPage() {
     }
   }
 
+  const getPaymentStatusColor = (paymentStatus) => {
+    switch (paymentStatus?.toLowerCase()) {
+      case 'paid':
+        return 'bg-green-500/20 text-green-300 border border-green-500/30'
+      case 'pending':
+        return 'bg-red-500/20 text-red-300 border border-red-500/30'
+      case 'failed':
+        return 'bg-orange-500/20 text-orange-300 border border-orange-500/30'
+      default:
+        return 'bg-gray-500/20 text-gray-300 border border-gray-500/30'
+    }
+  }
+
+  const getPaymentStatusLabel = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'paid':
+        return '✓ Paid'
+      case 'pending':
+        return '⏳ Unpaid'
+      case 'failed':
+        return '✕ Payment Failed'
+      default:
+        return 'Unknown'
+    }
+  }
+
   const canCancel = (booking) => {
     return ['confirmed', 'pending'].includes(booking.status.toLowerCase())
   }
 
   const canEdit = (booking) => {
     return ['confirmed', 'pending'].includes(booking.status.toLowerCase())
+  }
+
+  const needsPayment = (booking) => {
+    return booking.paymentStatus === 'pending' && ['confirmed', 'ongoing'].includes(booking.status.toLowerCase())
   }
 
   return (
@@ -150,11 +215,39 @@ export default function MyBookingsPage() {
 
                       {/* Status and Actions */}
                       <div className="flex flex-col items-end gap-4 w-full md:w-auto">
-                        <span className={`text-xs px-4 py-2 rounded-full font-medium ${getStatusColor(booking.status)}`}>
-                          {booking.status}
-                        </span>
+                        <div className="flex flex-col gap-2 w-full md:w-auto items-end">
+                          <span className={`text-xs px-4 py-2 rounded-full font-medium ${getStatusColor(booking.status)}`}>
+                            {booking.status}
+                          </span>
+                          <span className={`text-xs px-3 py-1.5 rounded-full font-medium ${getPaymentStatusColor(booking.paymentStatus)}`}>
+                            {getPaymentStatusLabel(booking.paymentStatus)}
+                          </span>
+                        </div>
 
-                        <div className="flex gap-2 w-full md:w-auto">
+                        <div className="flex gap-2 w-full md:w-auto flex-wrap justify-end">
+                          {needsPayment(booking) && (
+                            <button
+                              onClick={() => handlePayNow(booking)}
+                              className="flex-1 md:flex-none px-4 py-2 rounded-lg bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 transition flex items-center justify-center gap-2 text-sm font-medium"
+                            >
+                              <CreditCard size={16} />
+                              Pay Now
+                            </button>
+                          )}
+                          {booking.paymentStatus === 'paid' && booking.paymentId && (
+                            <button
+                              onClick={() => handleViewPaymentDetails(booking)}
+                              disabled={loadingPaymentId === booking._id}
+                              className="flex-1 md:flex-none px-4 py-2 rounded-lg bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 transition flex items-center justify-center gap-2 text-sm font-medium disabled:opacity-50"
+                            >
+                              {loadingPaymentId === booking._id ? (
+                                <Loader size={16} className="animate-spin" />
+                              ) : (
+                                <FileText size={16} />
+                              )}
+                              Receipt
+                            </button>
+                          )}
                           {canEdit(booking) && (
                             <button
                               onClick={() => handleEditBooking(booking)}
@@ -227,6 +320,32 @@ export default function MyBookingsPage() {
             setShowEditModal(false)
             setEditingBooking(null)
             fetchBookings()
+          }}
+        />
+      )}
+
+      {/* Payment Checkout Modal */}
+      {showPaymentModal && paymentBooking && (
+        <PaymentCheckoutModal
+          isOpen={showPaymentModal}
+          onClose={() => {
+            setShowPaymentModal(false)
+            setPaymentBooking(null)
+          }}
+          booking={paymentBooking}
+          onSuccess={handlePaymentSuccess}
+        />
+      )}
+
+      {/* Payment Details Modal */}
+      {showPaymentDetails && selectedPayment && paymentBooking && (
+        <PaymentDetailsModal
+          payment={selectedPayment}
+          booking={paymentBooking}
+          isOpen={showPaymentDetails}
+          onClose={() => {
+            setShowPaymentDetails(false)
+            setSelectedPayment(null)
           }}
         />
       )}

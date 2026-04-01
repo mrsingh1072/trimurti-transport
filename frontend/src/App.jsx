@@ -23,6 +23,7 @@ import StaffDashboard from './pages/staff/StaffDashboard'
 import StaffBookingsPage from './pages/staff/BookingsPage'
 import StaffReturnsPage from './pages/staff/ReturnsPage'
 import StaffVehiclesPage from './pages/staff/VehiclesPage'
+import StaffPaymentsPage from './pages/staff/PaymentsPage'
 
 // Customer Pages
 import LandingPage from './pages/LandingPage'
@@ -129,6 +130,14 @@ export default function App() {
             element={
               <StaffRoute>
                 <StaffVehiclesPage />
+              </StaffRoute>
+            }
+          />
+          <Route
+            path="/staff/payments"
+            element={
+              <StaffRoute>
+                <StaffPaymentsPage />
               </StaffRoute>
             }
           />

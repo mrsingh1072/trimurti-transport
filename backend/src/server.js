@@ -13,6 +13,16 @@ const routes = require('./routes');
 const { notFoundHandler, errorHandler } = require('./middleware/errorMiddleware');
 const { setupSwagger } = require('./config/swagger');
 
+// Verify environment variables are loaded
+console.log('\n🔧 [SERVER] Environment Configuration:');
+console.log('   - NODE_ENV:', process.env.NODE_ENV);
+console.log('   - PORT:', process.env.PORT);
+console.log('   - MONGO_URI:', process.env.MONGO_URI ? '✅ Set' : '❌ Missing');
+console.log('   - JWT_SECRET:', process.env.JWT_SECRET ? '✅ Set' : '❌ Missing');
+console.log('   - RAZORPAY_KEY_ID:', process.env.RAZORPAY_KEY_ID ? `✅ ${process.env.RAZORPAY_KEY_ID.substring(0, 15)}...` : '❌ Missing');
+console.log('   - RAZORPAY_KEY_SECRET:', process.env.RAZORPAY_KEY_SECRET ? `✅ ${process.env.RAZORPAY_KEY_SECRET.substring(0, 15)}...` : '❌ Missing');
+console.log('');
+
 const app = express();
 
 // Middleware

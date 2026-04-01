@@ -2,17 +2,27 @@ const express = require('express');
 const router = express.Router();
 
 const paymentController = require('../controllers/paymentController');
-const { validate } = require('../middleware/validationMiddleware');
 const { protect, authorize } = require('../middleware/authMiddleware');
-const { createPaymentSchema } = require('../validations/paymentValidation');
 const { USER_ROLES } = require('../config/constants');
 
-router.post(
-  '/',
+// Customer creates payment order for their booking
+router.post('/create-order', protect, paymentController.createOrder);
+
+// Customer/Staff/Admin verifies payment
+router.post('/verify', protect, paymentController.verifyPayment);
+
+// Get payments (customer sees own, staff/admin see all)
+router.get('/', protect, paymentController.getPayments);
+
+// Get single payment details
+router.get('/:id', protect, paymentController.getPaymentById);
+
+// Get payment statistics (admin only)
+router.get(
+  '/stats/overview',
   protect,
-  authorize(USER_ROLES.STAFF, USER_ROLES.ADMIN),
-  validate(createPaymentSchema),
-  paymentController.createPayment
+  authorize(USER_ROLES.ADMIN),
+  paymentController.getStats
 );
 
 module.exports = router;

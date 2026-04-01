@@ -336,10 +336,92 @@ export const deleteUser = async (userId) => {
 export const getPayments = async () => {
   try {
     const response = await apiClient.get('/payments')
-    return response.data
+    return response.data.data || response.data
   } catch (error) {
     handleError(error)
     return []
+  }
+}
+
+// Create order for payment (Razorpay)
+export const createPaymentOrder = async (bookingId, amount) => {
+  try {
+    console.log('\n💸 [CREATE PAYMENT ORDER] Starting...');
+    console.log('   - Booking ID:', bookingId);
+    console.log('   - Amount:', amount);
+    
+    const payload = { bookingId, amount };
+    console.log('   - Payload:', JSON.stringify(payload));
+    
+    const response = await apiClient.post('/payments/create-order', payload)
+    
+    console.log('✅ [CREATE PAYMENT ORDER] Success');
+    console.log('   - Order ID:', response.data.data?.orderId);
+    console.log('   - Amount:', response.data.data?.amount);
+    
+    return response.data.data
+  } catch (error) {
+    console.error('❌ [CREATE PAYMENT ORDER] Error:', {
+      status: error.response?.status,
+      message: error.response?.data?.message || error.message,
+      data: error.response?.data
+    })
+    handleError(error)
+    throw error
+  }
+}
+
+// Verify payment (Razorpay signature verification)
+export const verifyPayment = async (bookingId, razorpayOrderId, razorpayPaymentId, razorpaySignature) => {
+  try {
+    console.log('\n✔️ [VERIFY PAYMENT] Starting verification...');
+    console.log('   - Booking ID:', bookingId);
+    console.log('   - Order ID:', razorpayOrderId);
+    console.log('   - Payment ID:', razorpayPaymentId);
+    
+    const payload = {
+      bookingId,
+      razorpayOrderId,
+      razorpayPaymentId,
+      razorpaySignature,
+    };
+    
+    const response = await apiClient.post('/payments/verify', payload)
+    
+    console.log('✅ [VERIFY PAYMENT] Success');
+    console.log('   - Payment verified and booking updated');
+    
+    return response.data.data
+  } catch (error) {
+    console.error('❌ [VERIFY PAYMENT] Error:', {
+      status: error.response?.status,
+      message: error.response?.data?.message || error.message,
+      data: error.response?.data
+    })
+    handleError(error)
+    throw error
+  }
+}
+
+// Get payment stats (admin only)
+export const getPaymentStats = async () => {
+  try {
+    const response = await apiClient.get('/payments/stats/overview')
+    return response.data.data
+  } catch (error) {
+    handleError(error)
+    return null
+  }
+}
+
+// Get single payment
+export const getPaymentById = async (paymentId) => {
+  try {
+    const response = await apiClient.get(`/payments/${paymentId}`)
+    return response.data.data
+  } catch (error) {
+    handleError(error)
+    return null
   }
 }
 
