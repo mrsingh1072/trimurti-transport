@@ -2,6 +2,45 @@ import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 
 /**
+ * Load image from URL with proper error handling
+ * @param {string} url - Image URL (e.g. '/signature.jpeg')
+ * @returns {Promise<HTMLImageElement>} Loaded image element
+ */
+const loadImage = (url) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const img = new Image()
+      img.crossOrigin = 'Anonymous'
+      img.src = url
+
+      img.onload = () => {
+        console.log(`✓ Image loaded successfully from ${url}`)
+        resolve(img)
+      }
+
+      img.onerror = (error) => {
+        console.error(`❌ Failed to load image from: ${url}`, error)
+        reject(new Error(`Failed to load image: ${url}`))
+      }
+
+      img.onabort = () => {
+        console.error(`❌ Image loading aborted for: ${url}`)
+        reject(new Error(`Image loading aborted: ${url}`))
+      }
+
+      // Set timeout for slow connections
+      setTimeout(() => {
+        if (!img.complete) {
+          reject(new Error(`Image loading timeout: ${url}`))
+        }
+      }, 10000) // 10 second timeout
+    } catch (error) {
+      reject(error)
+    }
+  })
+}
+
+/**
  * Generate and download receipt PDF
  * @param {string} elementId - ID of HTML element to capture as PDF
  * @param {string} bookingId - Booking ID for filename
@@ -73,7 +112,7 @@ export const generateReceiptPDF = async (elementId, bookingId, options = {}) => 
   }
 }
 
-export const generateCustomReceiptPDF = (paymentData, bookingData) => {
+export const generateCustomReceiptPDF = async (paymentData, bookingData) => {
   try {
     const pdf = new jsPDF('p', 'mm', 'a4')
     const pageWidth = pdf.internal.pageSize.getWidth()
@@ -194,38 +233,8 @@ export const generateCustomReceiptPDF = (paymentData, bookingData) => {
     }
 
     // ========== SIGNATURE SECTION ==========
-    // Separator line above signature
-    const signatureSectionY = pageHeight - 35
-    pdf.setDrawColor(200, 200, 200)
-    pdf.line(15, signatureSectionY, pageWidth - 15, signatureSectionY)
-
-    // Authorized Signature label (bottom right)
-    let signY = signatureSectionY + 5
-    pdf.setFontSize(9)
-    pdf.setTextColor(80, 80, 80)
-    pdf.text('Authorized Signature', pageWidth - 50, signY, { align: 'left' })
-
-    // Signature placeholder box (for visual organization)
-    signY += 8
-    pdf.setDrawColor(200, 200, 200)
-    pdf.rect(pageWidth - 50, signY, 35, 12)
-
-    // TO ADD SIGNATURE IMAGE WHEN AVAILABLE:
-    // 1. Create a signature.png file in frontend/public folder
-    // 2. Convert to base64 or import as URL
-    // 3. Uncomment code below:
-    // try {
-    //   const signatureImg = 'path/to/signature/image.png'
-    //   pdf.addImage(signatureImg, 'PNG', pageWidth - 48, signY + 1, 31, 10)
-    // } catch (e) {
-    //   console.log('Signature image not found, using placeholder')
-    // }
-
-    // Company stamp/footer
-    signY = pageHeight - 8
-    pdf.setFontSize(8)
-    pdf.setTextColor(100, 100, 100)
-    pdf.text('Trimurti Transport Services', pageWidth - 20, signY, { align: 'right' })
+    // Use helper function to load and add signature image
+    await addSignatureToPDF(pdf, pageWidth, pageHeight)
 
     // Footer messages
     yPosition = pageHeight - 20
@@ -254,26 +263,57 @@ export const generateCustomReceiptPDF = (paymentData, bookingData) => {
 
 /**
  * Helper function to add signature image to PDF
- * Call this when signature.png is available in public folder
- * 
- * Usage:
- * addSignatureToPDF(pdf, pageWidth, pageHeight, signatureImagePath)
+ * Loads signature.jpeg from public folder, converts to Base64, and embeds in PDF
  * 
  * @param {jsPDF} pdf - The PDF document object
  * @param {number} pageWidth - Page width in mm
  * @param {number} pageHeight - Page height in mm
- * @param {string} signatureImagePath - Path to signature image (e.g., '/signature.png')
+ * @returns {Promise<boolean>} True if signature added successfully, false otherwise
+ * 
+ * Example:
+ * const success = await addSignatureToPDF(pdf, 210, 297)
  */
-export const addSignatureToPDF = async (pdf, pageWidth, pageHeight, signatureImagePath) => {
+export const addSignatureToPDF = async (pdf, pageWidth, pageHeight) => {
   try {
-    const signatureSectionY = pageHeight - 35
-    const signY = signatureSectionY + 5 + 8
-
-    // Add signature image from public folder or data URL
-    pdf.addImage(signatureImagePath, 'PNG', pageWidth - 48, signY + 1, 31, 10)
+    console.log('Helper: Loading signature image...')
+    
+    // Load image
+    const img = await loadImage('/signature.jpeg')
+    
+    // Convert to Base64 using canvas with fixed dimensions
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    
+    if (!ctx) {
+      throw new Error('Could not get canvas context')
+    }
+    
+    const WIDTH = 200
+    const HEIGHT = 80
+    canvas.width = WIDTH
+    canvas.height = HEIGHT
+    
+    ctx.drawImage(img, 0, 0, WIDTH, HEIGHT)
+    const base64 = canvas.toDataURL('image/jpeg', 0.7)
+    
+    // Add to PDF
+    const signatureX = pageWidth - 50
+    const signatureY = pageHeight - 40
+    
+    pdf.setFontSize(9)
+    pdf.setTextColor(80, 80, 80)
+    pdf.text('Authorized Signature', signatureX, signatureY - 15, { align: 'left' })
+    
+    pdf.addImage(base64, 'JPEG', signatureX, signatureY, 50, 20)
+    
+    pdf.setFontSize(8)
+    pdf.setTextColor(100, 100, 100)
+    pdf.text('Trimurti Transport Services', signatureX + 25, pageHeight - 10, { align: 'center' })
+    
+    console.log('✓ Signature image added to PDF successfully')
     return true
   } catch (error) {
-    console.warn('Could not add signature image:', error)
+    console.error('❌ Could not add signature image:', error.message)
     return false
   }
 }

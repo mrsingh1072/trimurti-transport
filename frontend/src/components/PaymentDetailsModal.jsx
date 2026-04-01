@@ -44,7 +44,7 @@ export default function PaymentDetailsModal({ payment, booking, isOpen, onClose 
         }
       } else if (pdfMethod === 'custom') {
         // Use custom jsPDF layout with fields
-        const success = generateCustomReceiptPDF(payment, booking)
+        const success = await generateCustomReceiptPDF(payment, booking)
         if (success) {
           setIsDownloading(false)
           return
@@ -239,8 +239,21 @@ export default function PaymentDetailsModal({ payment, booking, isOpen, onClose 
             <div className="flex justify-end items-end space-x-20">
               {/* Signature Area - Right Side */}
               <div className="text-center">
-                <div className="h-12 w-28 border-b border-gray-400 mb-2"></div>
-                <p className="text-gray-600 text-xs font-semibold">Authorized Signature</p>
+                <p className="text-gray-600 text-xs font-semibold mb-2">Authorized Signature</p>
+                <img
+                  src="/signature.jpeg"
+                  alt="Authorized Signature"
+                  style={{
+                    width: '120px',
+                    height: '50px',
+                    objectFit: 'contain',
+                    marginBottom: '4px'
+                  }}
+                  onError={(e) => {
+                    console.warn('Signature image failed to load')
+                    e.target.style.display = 'none'
+                  }}
+                />
                 <p className="text-gray-500 text-xs mt-1">Trimurti Transport Services</p>
               </div>
             </div>

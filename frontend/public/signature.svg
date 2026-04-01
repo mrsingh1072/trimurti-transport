@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 120" width="300" height="120">
+  <!-- Signature text in stylized handwriting font -->
+  <!-- S letter with flourish -->
+  <path d="M 15 50 Q 15 35 25 30 Q 35 25 40 35 Q 42 42 35 48 Q 28 52 20 50 Q 15 48 18 58 Q 22 65 32 68 Q 40 70 42 60" 
+        stroke="#1a1a1a" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- a letter -->
+  <path d="M 50 65 Q 50 45 60 40 Q 68 38 72 45 Q 73 52 68 58 Q 62 62 56 60 M 72 60 L 72 68" 
+        stroke="#1a1a1a" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- u letter -->
+  <path d="M 80 42 L 80 60 Q 80 68 87 70 Q 95 72 96 60 L 96 42 M 96 60 L 103 68" 
+        stroke="#1a1a1a" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- r letter -->
+  <path d="M 110 42 L 110 68 M 110 55 Q 110 42 118 40 Q 122 40 123 45" 
+        stroke="#1a1a1a" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- a letter -->
+  <path d="M 135 65 Q 135 45 145 40 Q 153 38 157 45 Q 158 52 153 58 Q 147 62 141 60 M 157 60 L 157 68" 
+        stroke="#1a1a1a" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- h letter with flourish -->
+  <path d="M 165 25 L 165 68 M 165 55 Q 165 42 173 40 Q 181 40 182 50 L 182 68 M 182 50 Q 182 42 190 42 Q 195 42 196 52" 
+        stroke="#1a1a1a" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Signature flourish underline -->
+  <path d="M 15 75 Q 100 80 200 76" 
+        stroke="#1a1a1a" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  
+  <!-- Decorative underline flourish -->
+  <path d="M 200 76 Q 210 75 215 78 Q 218 80 215 82" 
+        stroke="#1a1a1a" stroke-width="1.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Name "Kumar" below -->
+  <text x="150" y="105" font-family="cursive" font-size="16" font-style="italic" fill="#1a1a1a" text-anchor="middle">Kumar</text>
+</svg>
