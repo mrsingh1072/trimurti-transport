@@ -79,6 +79,7 @@ export default function MyBookingsPage() {
     try {
       const paymentData = await getPaymentById(booking.paymentId)
       setSelectedPayment(paymentData)
+      setPaymentBooking(booking)
       setShowPaymentDetails(true)
     } catch (err) {
       console.error('Failed to load payment details:', err)
