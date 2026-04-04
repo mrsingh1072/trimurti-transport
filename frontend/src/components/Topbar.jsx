@@ -1,6 +1,15 @@
 import { Bell, Search, User } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 
 export default function Topbar() {
+  const { user } = useAuth()
+
+  // Debug log
+  console.log('👤 Topbar Current User:', user)
+
+  const userName = user?.name || 'User'
+  const userRole = user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Role'
+
   return (
     <div className="fixed top-0 right-0 left-0 ml-64 h-20 bg-gradient-to-r from-gray-950/80 to-gray-900/80 backdrop-blur-xl border-b border-purple-500/10 flex items-center justify-between px-8 z-30">
       {/* Search */}
@@ -26,8 +35,8 @@ export default function Topbar() {
         {/* User Profile */}
         <div className="flex items-center gap-3 pl-6 border-l border-white/10">
           <div>
-            <p className="text-white font-medium text-sm">Rajesh Kumar</p>
-            <p className="text-gray-400 text-xs">Admin</p>
+            <p className="text-white font-medium text-sm">{userName}</p>
+            <p className="text-gray-400 text-xs">{userRole}</p>
           </div>
           <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-lg flex items-center justify-center">
             <User size={20} className="text-white" />

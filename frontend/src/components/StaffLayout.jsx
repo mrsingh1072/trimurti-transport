@@ -1,13 +1,19 @@
 import { useState } from 'react'
-import { Menu, X, BarChart3, BookOpen, Truck, RefreshCw, LogOut } from 'lucide-react'
+import { Menu, X, BarChart3, BookOpen, Truck, RefreshCw, LogOut, User } from 'lucide-react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export default function StaffLayout({ children }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
-  const { logout } = useAuth()
+  const { logout, user } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+
+  // Debug log
+  console.log('👤 StaffLayout Current User:', user)
+
+  const userName = user?.name || 'Staff Member'
+  const userRole = user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Staff'
 
   const handleLogout = () => {
     logout()
@@ -85,8 +91,19 @@ export default function StaffLayout({ children }) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Bar */}
-        <div className="h-20 bg-gray-900 border-b border-gray-800 flex items-center px-8">
+        <div className="h-20 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-8">
           <h1 className="text-xl font-bold text-white">Staff Control Panel</h1>
+          
+          {/* User Profile */}
+          <div className="flex items-center gap-3 pl-6 border-l border-gray-700">
+            <div>
+              <p className="text-white font-medium text-sm">{userName}</p>
+              <p className="text-gray-400 text-xs">{userRole}</p>
+            </div>
+            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+              <User size={20} className="text-white" />
+            </div>
+          </div>
         </div>
 
         {/* Content Area */}

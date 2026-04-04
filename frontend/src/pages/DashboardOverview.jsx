@@ -1,15 +1,22 @@
 import { useState, useEffect } from 'react'
 import { BarChart3, Users, TrendingUp, RotateCcw, Download, Filter } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 import StatCard from '../components/StatCard'
 import GlassCard from '../components/GlassCard'
 import { getDashboardStats, getBookingStats, getVehicleCount } from '../services/api'
 
 export default function DashboardOverview() {
+  const { user } = useAuth()
   const [stats, setStats] = useState(null)
   const [bookingStats, setBookingStats] = useState(null)
   const [vehicleCount, setVehicleCount] = useState(null)
   const [loading, setLoading] = useState(true)
   const [selectedRange, setSelectedRange] = useState('7d')
+
+  // Debug log
+  console.log('👤 DashboardOverview Current User:', user)
+
+  const userName = user?.name || 'User'
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -40,7 +47,7 @@ export default function DashboardOverview() {
           <h1 className="text-4xl font-bold mb-2">
             <span className="gradient-text">Dashboard Overview</span>
           </h1>
-          <p className="text-gray-400">Welcome back, Rajesh. Here's your business performance.</p>
+          <p className="text-gray-400">Welcome back, {userName}. Here's your business performance.</p>
         </div>
         <div className="flex items-center gap-4">
           <button className="glass-card px-6 py-3 rounded-xl hover:bg-white/10 transition flex items-center gap-2">

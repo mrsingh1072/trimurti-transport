@@ -80,6 +80,10 @@ export default function LoginForm({
         
         login(response.user, response.token)
         
+        // Debug: verify user was stored
+        console.log('✅ Login Success - User stored:', response.user)
+        console.log('📦 User from localStorage:', localStorage.getItem('user'))
+        
         // Role-based redirection
         if (userRole === 'admin') {
           navigate('/admin')

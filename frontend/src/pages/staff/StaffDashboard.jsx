@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { BarChart3, BookOpen, Truck, TrendingUp } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
 import StaffLayout from '../../components/StaffLayout'
 import { getBookings, getVehicles } from '../../services/api'
 
 export default function StaffDashboard() {
+  const { user } = useAuth()
   const [stats, setStats] = useState({
     activeBookings: 0,
     completedBookings: 0,
@@ -11,6 +13,11 @@ export default function StaffDashboard() {
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  // Debug log
+  console.log('👤 StaffDashboard Current User:', user)
+
+  const userName = user?.name || 'Staff Member'
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -71,7 +78,7 @@ export default function StaffDashboard() {
         {/* Header */}
         <div>
           <h2 className="text-3xl font-bold text-white mb-2">Dashboard</h2>
-          <p className="text-gray-400">Welcome to the staff control panel</p>
+          <p className="text-gray-400">Welcome back, {userName}. Here's your staff overview.</p>
         </div>
 
         {/* Error State */}

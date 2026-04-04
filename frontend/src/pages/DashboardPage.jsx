@@ -1,9 +1,16 @@
 import { BarChart3, Users, TrendingUp, RotateCcw, Download, Filter, Search, MoreVertical, Clock, MapPin, DollarSign } from 'lucide-react'
 import { useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import Card from '../components/Card'
 
 export default function DashboardPage() {
+  const { user } = useAuth()
   const [selectedRange, setSelectedRange] = useState('7d')
+
+  // Debug log
+  console.log('👤 DashboardPage Current User:', user)
+
+  const userName = user?.name || 'User'
 
   return (
     <div className="min-h-screen bg-gradient-dark pt-24 pb-12">
@@ -18,7 +25,7 @@ export default function DashboardPage() {
             <h1 className="text-5xl font-black mb-2">
               <span className="gradient-text">Dashboard</span>
             </h1>
-            <p className="text-gray-400">Welcome back, Rajesh. Here's your business performance overview.</p>
+            <p className="text-gray-400">Welcome back, {userName}. Here's your business performance overview.</p>
           </div>
           <div className="flex items-center gap-4">
             <button className="glass px-6 py-3 rounded-xl hover:bg-white/10 transition flex items-center gap-2">

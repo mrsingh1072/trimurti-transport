@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { TrendingUp, Users, Truck, DollarSign } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
 import AdminLayout from '../../components/AdminLayout'
 import StatsCard from '../../components/admin/StatsCard'
 import DataTable from '../../components/admin/DataTable'
@@ -8,6 +9,7 @@ import { getBookings, getVehicles } from '../../services/api'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 export default function AdminDashboard() {
+  const { user } = useAuth()
   const [stats, setStats] = useState({
     totalVehicles: 0,
     activeBookings: 0,
@@ -17,6 +19,11 @@ export default function AdminDashboard() {
   const [recentBookings, setRecentBookings] = useState([])
   const [chartData, setChartData] = useState([])
   const [loading, setLoading] = useState(true)
+
+  // Debug log
+  console.log('👤 AdminDashboard Current User:', user)
+
+  const userName = user?.name || 'Administrator'
 
   useEffect(() => {
     const fetchData = async () => {
@@ -94,7 +101,7 @@ export default function AdminDashboard() {
         {/* Header */}
         <div>
           <h2 className="text-3xl font-bold text-white mb-2">Dashboard</h2>
-          <p className="text-gray-400">System overview and key metrics</p>
+          <p className="text-gray-400">Welcome back, {userName}. System overview and key metrics</p>
         </div>
 
         {/* Stats Grid */}
