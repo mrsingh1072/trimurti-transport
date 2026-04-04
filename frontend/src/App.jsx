@@ -1,11 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import Navbar from './components/Navbar'
-import DashboardLayout from './components/DashboardLayout'
 import ProtectedRoute from './components/ProtectedRoute'
 import CustomerRoute from './components/CustomerRoute'
 import StaffRoute from './components/StaffRoute'
 import AdminRoute from './components/AdminRoute'
+import ToastContainer from './components/ToastContainer'
 
 // Auth Pages
 import LoginPage from './pages/LoginPage'
@@ -15,13 +15,6 @@ import CustomerLoginPage from './pages/CustomerLoginPage'
 import StaffLoginPage from './pages/StaffLoginPage'
 import AdminLoginPage from './pages/AdminLoginPage'
 
-// Dashboard Pages
-import DashboardOverview from './pages/DashboardOverview'
-import VehiclesPage from './pages/VehiclesPage'
-import BookingsPage from './pages/BookingsPage'
-import ReturnsPage from './pages/ReturnsPage'
-import AdminPage from './pages/AdminPage'
-
 // Staff Pages
 import StaffDashboard from './pages/staff/StaffDashboard'
 import StaffBookingsPage from './pages/staff/BookingsPage'
@@ -30,9 +23,11 @@ import StaffVehiclesPage from './pages/staff/VehiclesPage'
 import StaffPaymentsPage from './pages/staff/PaymentsPage'
 
 // Customer Pages
+import DashboardPage from './pages/DashboardPage'
 import LandingPage from './pages/LandingPage'
 import CustomerVehiclesPage from './pages/CustomerVehiclesPage'
 import MyBookingsPage from './pages/MyBookingsPage'
+import ProfilePage from './pages/ProfilePage'
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard'
@@ -48,6 +43,7 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <ToastContainer />
         <Routes>
           {/* Landing Page */}
           <Route
@@ -92,20 +88,30 @@ export default function App() {
             }
           />
 
-          {/* Customer Dashboard Route */}
+          <Route
+            path="/profile"
+            element={
+              <CustomerRoute>
+                <div className="min-h-screen bg-gray-950 pt-20">
+                  <Navbar />
+                  <ProfilePage />
+                </div>
+              </CustomerRoute>
+            }
+          />
+
+          {/* Customer Dashboard - New Enhanced UI */}
           <Route
             path="/dashboard"
             element={
               <CustomerRoute>
-                <DashboardLayout />
+                <div className="min-h-screen bg-gray-950 pt-20">
+                  <Navbar />
+                  <DashboardPage />
+                </div>
               </CustomerRoute>
             }
-          >
-            <Route index element={<DashboardOverview />} />
-            <Route path="vehicles" element={<VehiclesPage />} />
-            <Route path="bookings" element={<BookingsPage />} />
-            <Route path="returns" element={<ReturnsPage />} />
-          </Route>
+          />
 
           {/* Staff Routes */}
           <Route

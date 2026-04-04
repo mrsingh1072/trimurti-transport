@@ -1,4 +1,4 @@
-import { Menu, X, LogOut } from 'lucide-react'
+import { Menu, X, LogOut, User } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
@@ -7,6 +7,11 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const { user, isAuthenticated, logout } = useAuth()
   const navigate = useNavigate()
+
+  const handleProfileClick = () => {
+    console.log('🔗 Navigating to profile for user:', user?.name)
+    navigate('/profile')
+  }
 
   const handleLogout = () => {
     logout()
@@ -43,15 +48,18 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-4">
           {isAuthenticated ? (
             <>
-              <div className="flex items-center gap-3 pr-4 border-r border-gray-700">
+              <button
+                onClick={handleProfileClick}
+                className="flex items-center gap-3 pr-4 border-r border-gray-700 hover:opacity-80 transition"
+              >
                 <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-lg flex items-center justify-center">
                   <span className="text-white font-bold text-xs">{user?.name?.charAt(0)}</span>
                 </div>
-                <div>
+                <div className="text-left">
                   <p className="text-white text-sm font-medium">{user?.name}</p>
                   <p className="text-gray-400 text-xs">{user?.email}</p>
                 </div>
-              </div>
+              </button>
               <button
                 onClick={handleLogout}
                 className="px-6 py-2 text-white hover:text-red-400 transition flex items-center gap-2"
@@ -84,10 +92,19 @@ export default function Navbar() {
           <div className="container-max py-4 flex flex-col gap-4">
             {isAuthenticated ? (
               <>
-                <div className="py-2 px-4 rounded-lg bg-white/5 border border-white/10 mb-2">
-                  <p className="text-white text-sm font-medium">{user?.name}</p>
+                <button
+                  onClick={() => {
+                    handleProfileClick()
+                    setIsOpen(false)
+                  }}
+                  className="py-2 px-4 rounded-lg bg-white/5 border border-white/10 text-left hover:bg-white/10 transition"
+                >
+                  <p className="text-white text-sm font-medium flex items-center gap-2">
+                    <User size={18} />
+                    {user?.name}
+                  </p>
                   <p className="text-gray-400 text-xs">{user?.email}</p>
-                </div>
+                </button>
                 <Link to="/vehicles" className="text-gray-300 hover:text-white transition">Vehicles</Link>
                 <Link to="/my-bookings" className="text-gray-300 hover:text-white transition">My Bookings</Link>
                 <Link to="/dashboard" className="text-gray-300 hover:text-white transition">Dashboard</Link>

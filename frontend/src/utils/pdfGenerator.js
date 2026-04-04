@@ -121,111 +121,205 @@ export const generateCustomReceiptPDF = async (paymentData, bookingData) => {
 
     // ========== HEADER SECTION ==========
     // Company Name
-    pdf.setFontSize(20)
+    pdf.setFontSize(22)
     pdf.setTextColor(0, 102, 204)
+    pdf.setFont(undefined, 'bold')
     pdf.text('TRIMURTI TRANSPORT', pageWidth / 2, yPosition, { align: 'center' })
 
-    yPosition += 7
+    yPosition += 8
     pdf.setFontSize(10)
+    pdf.setFont(undefined, 'normal')
     pdf.setTextColor(100, 100, 100)
     pdf.text('Professional Vehicle Rental Services', pageWidth / 2, yPosition, { align: 'center' })
 
     // Company Contact Details
     yPosition += 6
-    pdf.setFontSize(8.5)
+    pdf.setFontSize(8)
     pdf.setTextColor(80, 80, 80)
-    pdf.text('Email: trimurtitransport1072@gmail.com | Phone: +91 8709905612', pageWidth / 2, yPosition, { align: 'center' })
+    pdf.text('✉ Email: trimurtitransport1072@gmail.com  |  📞 Phone: +91 8709905612', pageWidth / 2, yPosition, { align: 'center' })
 
     // Divider line
     yPosition += 8
-    pdf.setDrawColor(200, 200, 200)
-    pdf.line(15, yPosition, pageWidth - 15, yPosition)
+    pdf.setDrawColor(0, 102, 204)
+    pdf.setLineWidth(0.5)
+    pdf.line(12, yPosition, pageWidth - 12, yPosition)
+
+    // Receipt type and reference
+    yPosition += 10
+    pdf.setFontSize(12)
+    pdf.setFont(undefined, 'bold')
+    pdf.setTextColor(0, 0, 0)
+    pdf.text('BOOKING RECEIPT', 15, yPosition)
 
     // Invoice number and date
     yPosition += 8
-    pdf.setFontSize(11)
-    pdf.setTextColor(0, 0, 0)
-    pdf.text(`Invoice #: ${paymentData._id.toString().slice(-6).toUpperCase()}`, 15, yPosition)
+    pdf.setFontSize(9)
+    pdf.setFont(undefined, 'normal')
+    pdf.setTextColor(60, 60, 60)
+    pdf.text(`Receipt #: ${paymentData._id.toString().slice(-6).toUpperCase()}`, 15, yPosition)
     pdf.text(
       `Date: ${new Date(paymentData.createdAt).toLocaleDateString('en-IN')}`,
       pageWidth - 50,
       yPosition
     )
 
-    // Customer details
-    yPosition += 15
-    pdf.setFontSize(11)
+    // ========== CUSTOMER DETAILS SECTION ==========
+    yPosition += 10
+    pdf.setFontSize(10)
+    pdf.setFont(undefined, 'bold')
     pdf.setTextColor(0, 0, 0)
-    pdf.text('BOOKING DETAILS', 15, yPosition)
+    pdf.text('CUSTOMER INFORMATION', 15, yPosition)
+
+    // Customer details box
+    pdf.setFillColor(245, 245, 250)
+    pdf.rect(15, yPosition + 2, pageWidth - 30, 18, 'F')
 
     yPosition += 7
-    pdf.setFontSize(10)
+    pdf.setFontSize(9)
+    pdf.setFont(undefined, 'normal')
     const customerName = paymentData.user?.name || 'N/A'
+    const customerEmail = paymentData.user?.email || 'N/A'
+    const customerPhone = paymentData.user?.phone || 'N/A'
+
+    pdf.text(`Name: ${customerName}`, 18, yPosition)
+    yPosition += 5
+    pdf.text(`Email: ${customerEmail}`, 18, yPosition)
+    yPosition += 5
+    pdf.text(`Phone: ${customerPhone}`, 18, yPosition)
+
+    // ========== VEHICLE & BOOKING DETAILS ==========
+    yPosition += 13
+    pdf.setFontSize(10)
+    pdf.setFont(undefined, 'bold')
+    pdf.setTextColor(0, 0, 0)
+    pdf.text('VEHICLE & RENTAL DETAILS', 15, yPosition)
+
+    // Details box
+    pdf.setFillColor(245, 250, 245)
+    pdf.rect(15, yPosition + 2, pageWidth - 30, 22, 'F')
+
+    yPosition += 7
+    pdf.setFontSize(9)
+    pdf.setFont(undefined, 'normal')
     const vehicleName = bookingData?.vehicle?.name || 'N/A'
-    const checkIn = bookingData?.startDate
+    const vehicleCategory = bookingData?.vehicle?.category || 'N/A'
+    const checkInDate = bookingData?.startDate
       ? new Date(bookingData.startDate).toLocaleDateString('en-IN')
       : 'N/A'
-    const checkOut = bookingData?.endDate
+    const checkOutDate = bookingData?.endDate
       ? new Date(bookingData.endDate).toLocaleDateString('en-IN')
       : 'N/A'
+    const duration = bookingData?.startDate && bookingData?.endDate
+      ? Math.ceil((new Date(bookingData.endDate) - new Date(bookingData.startDate)) / (1000 * 60 * 60 * 24))
+      : 0
 
-    pdf.text(`Customer: ${customerName}`, 15, yPosition)
+    pdf.text(`Vehicle: ${vehicleName} (${vehicleCategory})`, 18, yPosition)
+    yPosition += 5
+    pdf.text(`Check-in Date: ${checkInDate}`, 18, yPosition)
+    yPosition += 5
+    pdf.text(`Check-out Date: ${checkOutDate}`, 18, yPosition)
+    yPosition += 5
+    pdf.text(`Duration: ${duration} day(s)  |  Booking ID: ${bookingData?._id?.toString().slice(-6).toUpperCase() || 'N/A'}`, 18, yPosition)
+
+    // ========== PRICING DETAILS ==========
+    yPosition += 13
+    pdf.setFontSize(10)
+    pdf.setFont(undefined, 'bold')
+    pdf.setTextColor(0, 0, 0)
+    pdf.text('PRICING BREAKDOWN', 15, yPosition)
+
+    // Pricing table
     yPosition += 6
-    pdf.text(`Email: ${paymentData.user?.email || 'N/A'}`, 15, yPosition)
-    yPosition += 6
-    pdf.text(`Phone: ${paymentData.user?.phone || 'N/A'}`, 15, yPosition)
+    pdf.setFontSize(8.5)
+    pdf.setDrawColor(200, 200, 200)
+    
+    // Table header
+    pdf.setFillColor(230, 240, 250)
+    pdf.rect(15, yPosition, pageWidth - 30, 4.5, 'F')
+    pdf.setFont(undefined, 'bold')
+    pdf.text('Description', 18, yPosition + 3)
+    pdf.text('Rate', 130, yPosition + 3)
+    pdf.text('Total', pageWidth - 20, yPosition + 3, { align: 'right' })
 
-    // Booking info
-    yPosition += 10
-    pdf.text('VEHICLE & RENTAL INFO', 15, yPosition)
+    yPosition += 5
+    pdf.setFont(undefined, 'normal')
+    pdf.setDrawColor(200, 200, 200)
+    pdf.line(15, yPosition, pageWidth - 15, yPosition)
 
+    // Rental cost
+    yPosition += 4
+    const pricePerDay = bookingData?.vehicle?.pricePerDay || 0
+    const rentalCost = pricePerDay * duration
+    pdf.text('Vehicle Rental', 18, yPosition)
+    pdf.text(`₹${pricePerDay}/day × ${duration} days`, 130, yPosition)
+    pdf.setFont(undefined, 'bold')
+    pdf.text(`₹${rentalCost.toLocaleString('en-IN')}`, pageWidth - 20, yPosition, { align: 'right' })
+
+    // Additional fees if any
+    if ((bookingData?.lateFee || 0) > 0) {
+      yPosition += 5
+      pdf.setFont(undefined, 'normal')
+      pdf.text('Late Fee', 18, yPosition)
+      pdf.text(``, 130, yPosition)
+      pdf.setFont(undefined, 'bold')
+      pdf.text(`+₹${bookingData.lateFee.toLocaleString('en-IN')}`, pageWidth - 20, yPosition, { align: 'right' })
+    }
+
+    if ((bookingData?.damageFee || 0) > 0) {
+      yPosition += 5
+      pdf.setFont(undefined, 'normal')
+      pdf.text('Damage Fee', 18, yPosition)
+      pdf.text(``, 130, yPosition)
+      pdf.setFont(undefined, 'bold')
+      pdf.text(`+₹${bookingData.damageFee.toLocaleString('en-IN')}`, pageWidth - 20, yPosition, { align: 'right' })
+    }
+
+    // Total Amount
     yPosition += 7
-    pdf.text(`Vehicle: ${vehicleName}`, 15, yPosition)
-    yPosition += 6
-    pdf.text(`Check-in: ${checkIn}`, 15, yPosition)
-    yPosition += 6
-    pdf.text(`Check-out: ${checkOut}`, 15, yPosition)
-    yPosition += 6
-    pdf.text(`Booking ID: ${bookingData?._id || 'N/A'}`, 15, yPosition)
-
-    // Payment details
-    yPosition += 10
+    pdf.setDrawColor(0, 102, 204)
+    pdf.setLineWidth(0.8)
+    pdf.line(15, yPosition - 2, pageWidth - 15, yPosition - 2)
+    pdf.setFillColor(240, 248, 255)
+    pdf.rect(15, yPosition, pageWidth - 30, 7, 'F')
+    
     pdf.setFontSize(11)
+    pdf.setFont(undefined, 'bold')
+    pdf.setTextColor(0, 102, 204)
+    pdf.text('TOTAL AMOUNT PAID', 18, yPosition + 5)
+    const totalAmount = paymentData.amount || rentalCost
+    pdf.text(`₹${totalAmount.toLocaleString('en-IN')}`, pageWidth - 20, yPosition + 5, { align: 'right' })
+
+    // ========== PAYMENT INFORMATION ==========
+    yPosition += 12
+    pdf.setFontSize(10)
+    pdf.setFont(undefined, 'bold')
+    pdf.setTextColor(0, 0, 0)
     pdf.text('PAYMENT INFORMATION', 15, yPosition)
 
-    yPosition += 7
-    pdf.setFontSize(10)
-    pdf.text(`Status: ${paymentData.status.toUpperCase()}`, 15, yPosition)
     yPosition += 6
-    pdf.text(`Method: ${(paymentData.method || 'UPI').toUpperCase()}`, 15, yPosition)
-    yPosition += 6
+    pdf.setFontSize(9)
+    pdf.setFont(undefined, 'normal')
+    pdf.setTextColor(60, 60, 60)
+    pdf.text(`Status: ${paymentData.status?.toUpperCase() || 'COMPLETED'}`, 15, yPosition)
+    yPosition += 5
+    pdf.text(`Method: ${(paymentData.method || 'RAZORPAY').toUpperCase()}`, 15, yPosition)
+    yPosition += 5
     pdf.text(`Payment Date: ${new Date(paymentData.createdAt).toLocaleString('en-IN')}`, 15, yPosition)
 
-    // Amount box
-    yPosition += 10
-    pdf.setFillColor(240, 240, 240)
-    pdf.rect(15, yPosition, pageWidth - 30, 12, 'F')
-    pdf.setFontSize(12)
-    pdf.setTextColor(0, 102, 204)
-    pdf.text('TOTAL AMOUNT PAID', 15, yPosition + 4)
-    pdf.setFontSize(14)
-    pdf.text(`₹ ${paymentData.amount?.toLocaleString() || 0}`, pageWidth - 20, yPosition + 7, {
-      align: 'right',
-    })
-
     // Transaction IDs
-    if (paymentData.status === 'completed') {
-      yPosition += 18
-      pdf.setFontSize(11)
-      pdf.setTextColor(0, 0, 0)
+    if (paymentData.razorpayOrderId || paymentData.razorpayPaymentId) {
+      yPosition += 8
+      pdf.setFontSize(9)
+      pdf.setFont(undefined, 'bold')
       pdf.text('TRANSACTION REFERENCE', 15, yPosition)
 
-      yPosition += 7
-      pdf.setFontSize(9)
-      pdf.setTextColor(100, 100, 100)
+      yPosition += 5
+      pdf.setFontSize(8)
+      pdf.setFont(undefined, 'normal')
+      pdf.setTextColor(80, 80, 80)
       if (paymentData.razorpayOrderId) {
         pdf.text(`Order ID: ${paymentData.razorpayOrderId}`, 15, yPosition)
-        yPosition += 6
+        yPosition += 4
       }
       if (paymentData.razorpayPaymentId) {
         pdf.text(`Payment ID: ${paymentData.razorpayPaymentId}`, 15, yPosition)
@@ -233,23 +327,32 @@ export const generateCustomReceiptPDF = async (paymentData, bookingData) => {
     }
 
     // ========== SIGNATURE SECTION ==========
-    // Use helper function to load and add signature image
-    await addSignatureToPDF(pdf, pageWidth, pageHeight)
+    yPosition = pageHeight - 32
+    pdf.setDrawColor(200, 200, 200)
+    pdf.setLineWidth(0.3)
+    pdf.line(12, yPosition, pageWidth - 12, yPosition)
+
+    yPosition += 5
+    await addSignatureToPDF(pdf, pageWidth, yPosition)
 
     // Footer messages
-    yPosition = pageHeight - 20
+    yPosition = pageHeight - 12
     pdf.setFontSize(10)
-    pdf.setTextColor(150, 150, 150)
+    pdf.setFont(undefined, 'bold')
+    pdf.setTextColor(0, 102, 204)
     pdf.text('Thank you for choosing Trimurti Transport!', pageWidth / 2, yPosition, {
       align: 'center',
     })
+
     yPosition += 5
-    pdf.setFontSize(8)
-    pdf.text('This is a digital receipt. Please keep it for your records.', pageWidth / 2, yPosition, {
+    pdf.setFontSize(7)
+    pdf.setFont(undefined, 'normal')
+    pdf.setTextColor(120, 120, 120)
+    pdf.text('Please keep this receipt for your records. For any queries, contact us at trimurtitransport1072@gmail.com', pageWidth / 2, yPosition, {
       align: 'center',
     })
 
-    // Download
+    // Download PDF
     const filename = `receipt_${paymentData._id.toString().slice(-6)}.pdf`
     pdf.save(filename)
 
@@ -267,15 +370,12 @@ export const generateCustomReceiptPDF = async (paymentData, bookingData) => {
  * 
  * @param {jsPDF} pdf - The PDF document object
  * @param {number} pageWidth - Page width in mm
- * @param {number} pageHeight - Page height in mm
+ * @param {number} yPosition - Y position to place signature
  * @returns {Promise<boolean>} True if signature added successfully, false otherwise
- * 
- * Example:
- * const success = await addSignatureToPDF(pdf, 210, 297)
  */
-export const addSignatureToPDF = async (pdf, pageWidth, pageHeight) => {
+export const addSignatureToPDF = async (pdf, pageWidth, yPosition = null) => {
   try {
-    console.log('Helper: Loading signature image...')
+    console.log('📝 Loading signature image...')
     
     // Load image
     const img = await loadImage('/signature.jpeg')
@@ -297,23 +397,28 @@ export const addSignatureToPDF = async (pdf, pageWidth, pageHeight) => {
     const base64 = canvas.toDataURL('image/jpeg', 0.7)
     
     // Add to PDF
-    const signatureX = pageWidth - 50
-    const signatureY = pageHeight - 40
+    const signatureX = 15
+    const signatureY = yPosition || 150
     
     pdf.setFontSize(9)
-    pdf.setTextColor(80, 80, 80)
-    pdf.text('Authorized Signature', signatureX, signatureY - 15, { align: 'left' })
+    pdf.setFont(undefined, 'bold')
+    pdf.setTextColor(60, 60, 60)
+    pdf.text('Authorized Officer', signatureX, signatureY)
     
-    pdf.addImage(base64, 'JPEG', signatureX, signatureY, 50, 20)
+    // Add signature image
+    pdf.addImage(base64, 'JPEG', signatureX, signatureY + 2, 40, 18)
     
+    // Company name below signature
     pdf.setFontSize(8)
+    pdf.setFont(undefined, 'normal')
     pdf.setTextColor(100, 100, 100)
-    pdf.text('Trimurti Transport Services', signatureX + 25, pageHeight - 10, { align: 'center' })
+    pdf.text('Trimurti Transport Services', signatureX + 20, signatureY + 22)
     
     console.log('✓ Signature image added to PDF successfully')
     return true
   } catch (error) {
-    console.error('❌ Could not add signature image:', error.message)
+    console.warn('⚠ Could not add signature image:', error.message)
+    // Don't fail the whole PDF generation if signature fails
     return false
   }
 }
