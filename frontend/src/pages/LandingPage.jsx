@@ -76,20 +76,20 @@ export default function LandingPage() {
           <div className="inline-block mb-8">
             <div className="glass px-4 py-2 flex items-center gap-2 mx-auto w-fit">
               <Star size={16} className="text-purple-400" />
-              <span className="text-sm text-gray-300">Trusted by premium brands worldwide</span>
+              <span className="text-sm text-purple-400 font-semibold tracking-wide">वसुधैव कुटुम्बकम्</span>
             </div>
           </div>
 
           {/* Main Headline */}
           <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight text-white">
-            <span className="gradient-text">Luxury Vehicle Rental</span>
+            <span className="gradient-text">Rent Any Vehicle</span>
             {' '}<br />
-            Reimagined for Excellence
+            RAnytime, Anywhere
           </h1>
 
           {/* Subtext */}
           <p className="text-lg md:text-xl text-gray-400 max-w-3xl mx-auto mb-12">
-            Experience the future of premium car rentals. AI-powered matching, transparent pricing, and white-glove service for discerning travelers and businesses.
+            Trimurti Transport helps you rent cars, bikes, trucks, and more with transparent pricing and instant booking.
           </p>
 
           {/* CTA Buttons */}
