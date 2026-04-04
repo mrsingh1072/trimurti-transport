@@ -622,18 +622,18 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
-                name: 'Rajesh Kumar',
+                name: 'Omkar singh',
                 role: 'CEO, Luxury Corp',
                 quote: 'Trimurti transformed how we handle vehicle procurement. Simple, elegant, and powerful.'
               },
               {
-                name: 'Priya Sharma',
+                name: 'Rishabh singh',
                 role: 'Operations Manager',
                 quote: 'The dashboard is intuitive. Our team was productive within hours. Highly impressed.'
               },
               {
-                name: 'Amit Patel',
-                role: 'Founder, Travel Solutions',
+                name: 'Ayush Kumar',
+                role: 'Founder, Cloth store',
                 quote: 'Best investment we made. Saved us 40% on operational costs. Phenomenal support.'
               }
             ].map((testimonial, i) => (
@@ -704,16 +704,16 @@ export default function LandingPage() {
             </div>
             <div>
               <h4 className="font-bold text-white mb-4">Contact</h4>
-              <p className="text-gray-500 text-sm">contact@trimurti.com</p>
-              <p className="text-gray-500 text-sm">+1 (555) 123-4567</p>
+              <p className="text-gray-500 text-sm">trimurtitransport1072@gmail.com</p>
+              <p className="text-gray-500 text-sm">+91 8709905612</p>
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-gray-600 text-sm">© 2024 Trimurti Transport. All rights reserved.</p>
+            <p className="text-gray-600 text-sm">© {new Date().getFullYear()} Trimurti Transport. All rights reserved.</p>
             <div className="flex gap-6">
-              <a href="#" className="text-gray-500 hover:text-white transition text-sm">Twitter</a>
-              <a href="#" className="text-gray-500 hover:text-white transition text-sm">LinkedIn</a>
-              <a href="#" className="text-gray-500 hover:text-white transition text-sm">GitHub</a>
+              <a href="https://x.com/Mrsingh1072" className="text-gray-500 hover:text-white transition text-sm">Twitter</a>
+              <a href="https://leetcode.com/u/mr_singh1072/" className="text-gray-500 hover:text-white transition text-sm">LinkedIn</a>
+              <a href="https://github.com/mrsingh1072" className="text-gray-500 hover:text-white transition text-sm">GitHub</a>
             </div>
           </div>
         </div>
