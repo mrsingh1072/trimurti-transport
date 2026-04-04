@@ -10,6 +10,10 @@ import AdminRoute from './components/AdminRoute'
 // Auth Pages
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
+import RoleSelector from './pages/RoleSelector'
+import CustomerLoginPage from './pages/CustomerLoginPage'
+import StaffLoginPage from './pages/StaffLoginPage'
+import AdminLoginPage from './pages/AdminLoginPage'
 
 // Dashboard Pages
 import DashboardOverview from './pages/DashboardOverview'
@@ -57,7 +61,10 @@ export default function App() {
           />
 
           {/* Authentication Pages */}
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="/role-selector" element={<RoleSelector />} />
+          <Route path="/login" element={<CustomerLoginPage />} />
+          <Route path="/staff/login" element={<StaffLoginPage />} />
+          <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
 
           {/* Customer Pages */}

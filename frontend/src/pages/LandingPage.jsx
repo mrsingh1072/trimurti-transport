@@ -110,11 +110,11 @@ export default function LandingPage() {
                 🛒 Customer Login
               </Link>
               <span className="text-gray-600">•</span>
-              <Link to="/login" className="px-4 py-2 text-sm text-blue-400 hover:text-blue-300 transition font-medium">
+              <Link to="/staff/login" className="px-4 py-2 text-sm text-blue-400 hover:text-blue-300 transition font-medium">
                 👷 Staff Portal
               </Link>
               <span className="text-gray-600">•</span>
-              <Link to="/login" className="px-4 py-2 text-sm text-amber-400 hover:text-amber-300 transition font-medium">
+              <Link to="/admin/login" className="px-4 py-2 text-sm text-amber-400 hover:text-amber-300 transition font-medium">
                 🔐 Admin Access
               </Link>
             </div>
