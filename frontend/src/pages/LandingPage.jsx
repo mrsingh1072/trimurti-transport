@@ -1,11 +1,12 @@
-import { Star, Zap, Shield, TrendingUp, ArrowRight, Check } from 'lucide-react'
+import { Star, Zap, Shield, TrendingUp, ArrowRight, Check, User, Settings, Lock, Car, Bike, Truck, Bus, Wrench } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Card from '../components/Card'
 import { getDashboardStats, getBookingStats } from '../services/api'
 import { formatNumber, formatLargeNumber, formatCurrency, formatPercentage } from '../utils/formatters'
 
 export default function LandingPage() {
+  const navigate = useNavigate()
   // State for dashboard data
   const [dashboardData, setDashboardData] = useState({
     activeBookings: 0,
@@ -102,21 +103,54 @@ export default function LandingPage() {
             </button>
           </div>
 
-          {/* Role-based Login Links */}
-          <div className="mb-12 pb-8 border-b border-gray-800">
-            <p className="text-gray-400 text-sm mb-4">Already have an account?</p>
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <Link to="/login" className="px-4 py-2 text-sm text-purple-400 hover:text-purple-300 transition font-medium">
-                🛒 Customer Login
-              </Link>
-              <span className="text-gray-600">•</span>
-              <Link to="/staff/login" className="px-4 py-2 text-sm text-blue-400 hover:text-blue-300 transition font-medium">
-                👷 Staff Portal
-              </Link>
-              <span className="text-gray-600">•</span>
-              <Link to="/admin/login" className="px-4 py-2 text-sm text-amber-400 hover:text-amber-300 transition font-medium">
-                🔐 Admin Access
-              </Link>
+          {/* Role-based Login Options - Modern Cards */}
+          <div className="mt-16 mb-20">
+            <p className="text-gray-400 text-sm mb-8 font-medium">Already have an account? Select your role:</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
+              {/* Customer Login */}
+              <div
+                onClick={() => navigate('/login')}
+                className="bg-gradient-to-br from-purple-500 to-blue-500 p-8 rounded-xl cursor-pointer hover:scale-105 transition transform duration-300 shadow-lg hover:shadow-2xl hover:shadow-purple-500/50"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <User size={32} className="text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">Customer Login</h3>
+                <p className="text-white/80 text-sm leading-relaxed">Book and manage your vehicles with ease</p>
+                <div className="mt-6 flex items-center gap-2 text-white text-sm font-semibold">
+                  Sign In <ArrowRight size={16} />
+                </div>
+              </div>
+
+              {/* Staff Portal */}
+              <div
+                onClick={() => navigate('/staff/login')}
+                className="bg-gradient-to-br from-green-500 to-teal-500 p-8 rounded-xl cursor-pointer hover:scale-105 transition transform duration-300 shadow-lg hover:shadow-2xl hover:shadow-green-500/50"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <Settings size={32} className="text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">Staff Portal</h3>
+                <p className="text-white/80 text-sm leading-relaxed">Manage bookings and vehicles efficiently</p>
+                <div className="mt-6 flex items-center gap-2 text-white text-sm font-semibold">
+                  Access Portal <ArrowRight size={16} />
+                </div>
+              </div>
+
+              {/* Admin Access */}
+              <div
+                onClick={() => navigate('/admin/login')}
+                className="bg-gradient-to-br from-orange-500 to-red-500 p-8 rounded-xl cursor-pointer hover:scale-105 transition transform duration-300 shadow-lg hover:shadow-2xl hover:shadow-orange-500/50"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <Lock size={32} className="text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">Admin Access</h3>
+                <p className="text-white/80 text-sm leading-relaxed">Control and monitor the entire system</p>
+                <div className="mt-6 flex items-center gap-2 text-white text-sm font-semibold">
+                  Admin Panel <ArrowRight size={16} />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -249,6 +283,333 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Vehicle Rental Pricing Section */}
+      <section id="pricing" className="section-padding">
+        <div className="container-max">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-black mb-4 text-white">
+              Vehicle Rental <span className="gradient-text">Pricing</span>
+            </h2>
+            <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+              Transparent daily rates for every vehicle type. No hidden fees, all-inclusive pricing.
+            </p>
+          </div>
+
+          {/* Passenger Vehicles */}
+          <div className="mb-16">
+            <h3 className="text-2xl font-bold text-white mb-8 ml-4">🚗 Passenger Vehicles</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+              {/* Hatchback Card */}
+              <Card className="p-8 hover:border-cyan-500/50 transition group">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="p-3 rounded-lg bg-cyan-500/20">
+                    <Car size={28} className="text-cyan-400" />
+                  </div>
+                  <span className="text-xs px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300">Popular</span>
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">Hatchback</h3>
+                <p className="text-gray-400 text-sm mb-6">Compact & fuel-efficient</p>
+                <div className="mb-8">
+                  <span className="text-4xl font-bold text-white">₹1500</span>
+                  <span className="text-gray-400 text-sm">/day</span>
+                </div>
+                <div className="space-y-3 mb-8">
+                  {['5 Seater', 'AC & Power Windows', 'Insurance Included'].map((feature, i) => (
+                    <div key={i} className="flex items-center gap-2 text-gray-300 text-sm">
+                      <Check size={16} className="text-cyan-400" />
+                      {feature}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => navigate('/vehicles')}
+                  className="w-full btn-gradient px-6 py-3 text-white rounded-lg hover:shadow-lg hover:shadow-cyan-500/50 transition mb-3"
+                >
+                  Book Now
+                </button>
+                <button
+                  onClick={() => navigate('/vehicles')}
+                  className="w-full glass px-6 py-3 text-white rounded-lg hover:bg-white/10 transition"
+                >
+                  View Vehicles
+                </button>
+              </Card>
+
+              {/* SUV Card */}
+              <Card className="p-8 hover:border-purple-500/50 transition group">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="p-3 rounded-lg bg-purple-500/20">
+                    <Car size={28} className="text-purple-400" />
+                  </div>
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">SUV</h3>
+                <p className="text-gray-400 text-sm mb-6">Spacious & comfortable</p>
+                <div className="mb-8">
+                  <span className="text-4xl font-bold text-white">₹3000</span>
+                  <span className="text-gray-400 text-sm">/day</span>
+                </div>
+                <div className="space-y-3 mb-8">
+                  {['7 Seater', 'All-Terrain', 'Premium Interior'].map((feature, i) => (
+                    <div key={i} className="flex items-center gap-2 text-gray-300 text-sm">
+                      <Check size={16} className="text-purple-400" />
+                      {feature}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => navigate('/vehicles')}
+                  className="w-full btn-gradient px-6 py-3 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/50 transition mb-3"
+                >
+                  Book Now
+                </button>
+                <button
+                  onClick={() => navigate('/vehicles')}
+                  className="w-full glass px-6 py-3 text-white rounded-lg hover:bg-white/10 transition"
+                >
+                  View Vehicles
+                </button>
+              </Card>
+
+              {/* Luxury Card */}
+              <Card className="p-8 hover:border-yellow-500/50 transition group">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="p-3 rounded-lg bg-yellow-500/20">
+                    <Car size={28} className="text-yellow-400" />
+                  </div>
+                  <span className="text-xs px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-300">Premium</span>
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">Luxury</h3>
+                <p className="text-gray-400 text-sm mb-6">Premium & prestigious</p>
+                <div className="mb-8">
+                  <span className="text-4xl font-bold text-white">₹6000</span>
+                  <span className="text-gray-400 text-sm">/day</span>
+                </div>
+                <div className="space-y-3 mb-8">
+                  {['Leather Seats', 'GPS & Sunroof', 'Concierge Service'].map((feature, i) => (
+                    <div key={i} className="flex items-center gap-2 text-gray-300 text-sm">
+                      <Check size={16} className="text-yellow-400" />
+                      {feature}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => navigate('/vehicles')}
+                  className="w-full btn-gradient px-6 py-3 text-white rounded-lg hover:shadow-lg hover:shadow-yellow-500/50 transition mb-3"
+                >
+                  Book Now
+                </button>
+                <button
+                  onClick={() => navigate('/vehicles')}
+                  className="w-full glass px-6 py-3 text-white rounded-lg hover:bg-white/10 transition"
+                >
+                  View Vehicles
+                </button>
+              </Card>
+            </div>
+          </div>
+
+          {/* Two-Wheelers */}
+          <div className="mb-16">
+            <h3 className="text-2xl font-bold text-white mb-8 ml-4">🏍️ Two-Wheelers</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+              {/* Standard Bike */}
+              <Card className="p-8 hover:border-green-500/50 transition">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="p-3 rounded-lg bg-green-500/20">
+                    <Bike size={28} className="text-green-400" />
+                  </div>
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">Standard Bike</h3>
+                <p className="text-gray-400 text-sm mb-6">Everyday commuting</p>
+                <div className="mb-8">
+                  <span className="text-4xl font-bold text-white">₹500</span>
+                  <span className="text-gray-400 text-sm">/day</span>
+                </div>
+                <div className="space-y-3 mb-8">
+                  {['Fuel Efficient', 'Easy Handling', 'Helmet & Lock'].map((feature, i) => (
+                    <div key={i} className="flex items-center gap-2 text-gray-300 text-sm">
+                      <Check size={16} className="text-green-400" />
+                      {feature}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => navigate('/vehicles')}
+                  className="w-full btn-gradient px-6 py-3 text-white rounded-lg hover:shadow-lg hover:shadow-green-500/50 transition mb-3"
+                >
+                  Book Now
+                </button>
+              </Card>
+
+              {/* Sports Bike */}
+              <Card className="p-8 hover:border-red-500/50 transition">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="p-3 rounded-lg bg-red-500/20">
+                    <Bike size={28} className="text-red-400" />
+                  </div>
+                  <span className="text-xs px-3 py-1 rounded-full bg-red-500/20 text-red-300">Thrilling</span>
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">Sports Bike</h3>
+                <p className="text-gray-400 text-sm mb-6">High performance</p>
+                <div className="mb-8">
+                  <span className="text-4xl font-bold text-white">₹1200</span>
+                  <span className="text-gray-400 text-sm">/day</span>
+                </div>
+                <div className="space-y-3 mb-8">
+                  {['High Speed', 'Premium Comfort', 'Safety Gear'].map((feature, i) => (
+                    <div key={i} className="flex items-center gap-2 text-gray-300 text-sm">
+                      <Check size={16} className="text-red-400" />
+                      {feature}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => navigate('/vehicles')}
+                  className="w-full btn-gradient px-6 py-3 text-white rounded-lg hover:shadow-lg hover:shadow-red-500/50 transition mb-3"
+                >
+                  Book Now
+                </button>
+              </Card>
+            </div>
+          </div>
+
+          {/* Commercial Vehicles */}
+          <div className="mb-16">
+            <h3 className="text-2xl font-bold text-white mb-8 ml-4">🚚 Commercial Vehicles</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+              {/* Truck Card */}
+              <Card className="p-8 hover:border-orange-500/50 transition">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="p-3 rounded-lg bg-orange-500/20">
+                    <Truck size={28} className="text-orange-400" />
+                  </div>
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">Truck</h3>
+                <p className="text-gray-400 text-sm mb-6">Cargo & logistics</p>
+                <div className="mb-8">
+                  <span className="text-4xl font-bold text-white">₹4000</span>
+                  <span className="text-gray-400 text-sm">/day</span>
+                </div>
+                <div className="space-y-3 mb-8">
+                  {['High Capacity', 'Experienced Driver', 'GPS Tracking'].map((feature, i) => (
+                    <div key={i} className="flex items-center gap-2 text-gray-300 text-sm">
+                      <Check size={16} className="text-orange-400" />
+                      {feature}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => navigate('/vehicles')}
+                  className="w-full btn-gradient px-6 py-3 text-white rounded-lg hover:shadow-lg hover:shadow-orange-500/50 transition"
+                >
+                  Book Now
+                </button>
+              </Card>
+
+              {/* Bus Card */}
+              <Card className="p-8 hover:border-blue-500/50 transition">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="p-3 rounded-lg bg-blue-500/20">
+                    <Bus size={28} className="text-blue-400" />
+                  </div>
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">Bus</h3>
+                <p className="text-gray-400 text-sm mb-6">Group travel & tours</p>
+                <div className="mb-8">
+                  <span className="text-4xl font-bold text-white">₹7000</span>
+                  <span className="text-gray-400 text-sm">/day</span>
+                </div>
+                <div className="space-y-3 mb-8">
+                  {['50+ Capacity', 'AC & Comfort', 'Tour Assistance'].map((feature, i) => (
+                    <div key={i} className="flex items-center gap-2 text-gray-300 text-sm">
+                      <Check size={16} className="text-blue-400" />
+                      {feature}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => navigate('/vehicles')}
+                  className="w-full btn-gradient px-6 py-3 text-white rounded-lg hover:shadow-lg hover:shadow-blue-500/50 transition"
+                >
+                  Book Now
+                </button>
+              </Card>
+
+              {/* Tractor Card */}
+              <Card className="p-8 hover:border-yellow-600/50 transition">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="p-3 rounded-lg bg-yellow-600/20">
+                    <Wrench size={28} className="text-yellow-600" />
+                  </div>
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">Tractor</h3>
+                <p className="text-gray-400 text-sm mb-6">Agricultural use</p>
+                <div className="mb-8">
+                  <span className="text-4xl font-bold text-white">₹2000</span>
+                  <span className="text-gray-400 text-sm">/day</span>
+                </div>
+                <div className="space-y-3 mb-8">
+                  {['Farm Equipment', 'Trained Operator', 'Fuel Included'].map((feature, i) => (
+                    <div key={i} className="flex items-center gap-2 text-gray-300 text-sm">
+                      <Check size={16} className="text-yellow-600" />
+                      {feature}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => navigate('/vehicles')}
+                  className="w-full btn-gradient px-6 py-3 text-white rounded-lg hover:shadow-lg hover:shadow-yellow-600/50 transition"
+                >
+                  Book Now
+                </button>
+              </Card>
+            </div>
+          </div>
+
+          {/* Additional Charges Section */}
+          <div className="mt-16 pt-16 border-t border-gray-800">
+            <h3 className="text-2xl font-bold text-white mb-8 text-center">Additional Charges & Policies</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-3xl mx-auto">
+              {/* Driver Charge */}
+              <Card className="p-6">
+                <div className="p-3 rounded-lg bg-purple-500/20 w-fit mb-4">
+                  <User size={24} className="text-purple-400" />
+                </div>
+                <h4 className="text-lg font-bold text-white mb-3">Professional Driver</h4>
+                <p className="text-gray-400 text-sm mb-4">Optional service for added convenience</p>
+                <div className="text-2xl font-bold text-white">
+                  ₹500<span className="text-gray-400 text-sm">/day</span>
+                </div>
+              </Card>
+
+              {/* Late Return */}
+              <Card className="p-6">
+                <div className="p-3 rounded-lg bg-orange-500/20 w-fit mb-4">
+                  <Wrench size={24} className="text-orange-400" />
+                </div>
+                <h4 className="text-lg font-bold text-white mb-3">Late Return Fee</h4>
+                <p className="text-gray-400 text-sm mb-4">Charged for delays beyond rental period</p>
+                <div className="text-2xl font-bold text-white">
+                  ₹200<span className="text-gray-400 text-sm">/hour</span>
+                </div>
+              </Card>
+
+              {/* Fuel Policy */}
+              <Card className="p-6">
+                <div className="p-3 rounded-lg bg-cyan-500/20 w-fit mb-4">
+                  <Zap size={24} className="text-cyan-400" />
+                </div>
+                <h4 className="text-lg font-bold text-white mb-3">Fuel Policy</h4>
+                <p className="text-gray-400 text-sm mb-4">Customer responsibility for fuel/electricity</p>
+                <div className="text-sm text-cyan-300 font-semibold">
+                  Return with same fuel level
+                </div>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Testimonials Section */}
       <section className="section-padding">
         <div className="container-max">
@@ -321,8 +682,8 @@ export default function LandingPage() {
             <div>
               <h4 className="font-bold text-white mb-4">Product</h4>
               <ul className="space-y-2 text-gray-500 text-sm">
-                <li><a href="#" className="hover:text-white transition">Features</a></li>
-                <li><a href="#" className="hover:text-white transition">Pricing</a></li>
+                <li><a href="#features" className="hover:text-white transition">Features</a></li>
+                <li><button onClick={() => document.getElementById('pricing').scrollIntoView({ behavior: 'smooth' })} className="hover:text-white transition">Pricing</button></li>
                 <li><a href="#" className="hover:text-white transition">Security</a></li>
               </ul>
             </div>
