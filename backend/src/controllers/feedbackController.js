@@ -1,7 +1,7 @@
 const Feedback = require('../models/Feedback');
 const Booking = require('../models/Booking');
 
-// CUSTOMER: Submit feedback for a completed booking
+// CUSTOMER: Submit feedback (for a completed booking or general feedback)
 const submitFeedback = async (req, res) => {
   try {
     const { bookingId, message, rating } = req.body;
@@ -21,52 +21,68 @@ const submitFeedback = async (req, res) => {
       throw error;
     }
 
-    // Verify booking exists and belongs to user
-    const booking = await Booking.findById(bookingId);
-    if (!booking) {
-      const error = new Error('Booking not found');
-      error.statusCode = 404;
-      throw error;
-    }
+    // If booking is provided, validate it
+    if (bookingId) {
+      const booking = await Booking.findById(bookingId);
+      if (!booking) {
+        const error = new Error('Booking not found');
+        error.statusCode = 404;
+        throw error;
+      }
 
-    if (booking.user.toString() !== userId.toString()) {
-      const error = new Error('Cannot submit feedback for another user\'s booking');
-      error.statusCode = 403;
-      throw error;
-    }
+      if (booking.user.toString() !== userId.toString()) {
+        const error = new Error('Cannot submit feedback for another user\'s booking');
+        error.statusCode = 403;
+        throw error;
+      }
 
-    // Verify return is processed
-    if (booking.returnStatus !== 'processed') {
-      const error = new Error('Can only submit feedback for completed returns');
-      error.statusCode = 400;
-      throw error;
-    }
+      // Verify return is processed
+      if (booking.returnStatus !== 'processed') {
+        const error = new Error('Can only submit feedback for completed returns');
+        error.statusCode = 400;
+        throw error;
+      }
 
-    // Check if feedback already exists for this booking
-    const existingFeedback = await Feedback.findOne({ booking: bookingId });
-    if (existingFeedback) {
-      const error = new Error('Feedback already submitted for this booking');
-      error.statusCode = 409;
-      throw error;
+      // Check if feedback already exists for this booking
+      const existingFeedback = await Feedback.findOne({ booking: bookingId });
+      if (existingFeedback) {
+        const error = new Error('Feedback already submitted for this booking');
+        error.statusCode = 409;
+        throw error;
+      }
     }
 
     // Create feedback
-    const feedback = await Feedback.create({
+    const feedbackData = {
       user: userId,
-      booking: bookingId,
       message: message.trim(),
       rating: parseInt(rating),
-    });
+    };
+
+    if (bookingId) {
+      feedbackData.booking = bookingId;
+    }
+
+    const feedback = await Feedback.create(feedbackData);
 
     // Populate for response
-    await feedback.populate('user', 'name email');
-    await feedback.populate('booking', 'vehicle');
+    const populatedFeedback = await Feedback.findById(feedback._id)
+      .populate('user', 'name email')
+      .populate({
+        path: 'booking',
+        select: 'vehicle',
+        populate: {
+          path: 'vehicle',
+          select: 'name category',
+        },
+      });
 
-    console.log(`✅ Feedback submitted by user ${userId} for booking ${bookingId}: ${rating} stars`);
+    const feedbackType = bookingId ? 'booking' : 'general';
+    console.log(`✅ Feedback (${feedbackType}) submitted by user ${userId}: ${rating} stars`);
 
     res.status(201).json({
       message: 'Feedback submitted successfully',
-      feedback,
+      feedback: populatedFeedback,
     });
   } catch (error) {
     console.error('❌ Error submitting feedback:', error.message);
@@ -81,15 +97,15 @@ const getAllFeedback = async (req, res) => {
   try {
     const feedbacks = await Feedback.find()
       .populate('user', 'name email phone')
-      .populate('booking', 'vehicle')
+      .populate({
+        path: 'booking',
+        select: 'vehicle',
+        populate: {
+          path: 'vehicle',
+          select: 'name category',
+        },
+      })
       .sort({ createdAt: -1 });
-
-    // Populate vehicle details
-    for (let feedback of feedbacks) {
-      if (feedback.booking && feedback.booking.vehicle) {
-        feedback.booking.vehicle = await feedback.booking.populate('booking.vehicle');
-      }
-    }
 
     console.log(`📋 Retrieved ${feedbacks.length} feedbacks for admin/staff`);
 

@@ -2,7 +2,7 @@ import { Star, Zap, Shield, TrendingUp, ArrowRight, Check, User, Settings, Lock,
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Card from '../components/Card'
-import { getDashboardStats, getBookingStats } from '../services/api'
+import { getDashboardStats, getBookingStats, getLatestFeedback } from '../services/api'
 import { formatNumber, formatLargeNumber, formatCurrency, formatPercentage } from '../utils/formatters'
 
 export default function LandingPage() {
@@ -17,6 +17,8 @@ export default function LandingPage() {
   
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [feedback, setFeedback] = useState([])
+  const [feedbackLoading, setFeedbackLoading] = useState(true)
 
   // Fetch data on component mount
   useEffect(() => {
@@ -46,6 +48,26 @@ export default function LandingPage() {
     }
 
     fetchData()
+  }, [])
+
+  // Fetch latest feedback for testimonials
+  useEffect(() => {
+    const fetchFeedback = async () => {
+      try {
+        setFeedbackLoading(true)
+        const feedbackResponse = await getLatestFeedback()
+        if (feedbackResponse && feedbackResponse.feedbacks) {
+          setFeedback(feedbackResponse.feedbacks)
+        }
+      } catch (err) {
+        console.error('Error fetching feedback:', err)
+        // Continue with empty feedback - landing page will show fallback
+      } finally {
+        setFeedbackLoading(false)
+      }
+    }
+
+    fetchFeedback()
   }, [])
 
   // Format stat cards dynamically
@@ -615,42 +637,71 @@ export default function LandingPage() {
         <div className="container-max">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-black mb-4 text-white">
-              Trusted by <span className="gradient-text">Industry Leaders</span>
+              Trusted by <span className="gradient-text">Our Customers</span>
             </h2>
+            <p className="text-lg text-gray-400">Real feedback from people who use Trimurti Transport</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                name: 'Omkar singh',
-                role: 'CEO, Luxury Corp',
-                quote: 'Trimurti transformed how we handle vehicle procurement. Simple, elegant, and powerful.'
-              },
-              {
-                name: 'Rishabh singh',
-                role: 'Operations Manager',
-                quote: 'The dashboard is intuitive. Our team was productive within hours. Highly impressed.'
-              },
-              {
-                name: 'Ayush Kumar',
-                role: 'Founder, Cloth store',
-                quote: 'Best investment we made. Saved us 40% on operational costs. Phenomenal support.'
-              }
-            ].map((testimonial, i) => (
-              <Card key={i} className="p-8">
-                <div className="flex gap-0.5 mb-4">
-                  {[...Array(5)].map((_, j) => (
-                    <Star key={j} size={16} className="fill-yellow-400 text-yellow-400" />
-                  ))}
-                </div>
-                <p className="text-gray-300 mb-6 italic text-sm">"{testimonial.quote}"</p>
-                <div>
-                  <p className="font-bold text-white">{testimonial.name}</p>
-                  <p className="text-xs text-gray-500">{testimonial.role}</p>
-                </div>
-              </Card>
-            ))}
-          </div>
+          {feedbackLoading ? (
+            <div className="text-center py-12">
+              <p className="text-gray-400">Loading customer feedback...</p>
+            </div>
+          ) : feedback && feedback.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {feedback.map((item, i) => (
+                <Card key={i} className="p-8">
+                  <div className="flex gap-0.5 mb-4">
+                    {[...Array(Math.round(item.rating) || 5)].map((_, j) => (
+                      <Star key={j} size={16} className="fill-yellow-400 text-yellow-400" />
+                    ))}
+                    {[...Array(5 - Math.round(item.rating || 5))].map((_, j) => (
+                      <Star key={j + Math.round(item.rating || 5)} size={16} className="text-gray-600" />
+                    ))}
+                  </div>
+                  <p className="text-gray-300 mb-6 italic text-sm">"{item.message}"</p>
+                  <div>
+                    <p className="font-bold text-white">{item.user?.name || 'Customer'}</p>
+                    {item.booking?.vehicle && (
+                      <p className="text-xs text-gray-500">{item.booking.vehicle.name || 'Vehicle Rental'}</p>
+                    )}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {[
+                {
+                  name: 'Omkar singh',
+                  role: 'CEO, Luxury Corp',
+                  quote: 'Trimurti transformed how we handle vehicle procurement. Simple, elegant, and powerful.'
+                },
+                {
+                  name: 'Rishabh singh',
+                  role: 'Operations Manager',
+                  quote: 'The dashboard is intuitive. Our team was productive within hours. Highly impressed.'
+                },
+                {
+                  name: 'Ayush Kumar',
+                  role: 'Founder, Cloth store',
+                  quote: 'Best investment we made. Saved us 40% on operational costs. Phenomenal support.'
+                }
+              ].map((testimonial, i) => (
+                <Card key={i} className="p-8">
+                  <div className="flex gap-0.5 mb-4">
+                    {[...Array(5)].map((_, j) => (
+                      <Star key={j} size={16} className="fill-yellow-400 text-yellow-400" />
+                    ))}
+                  </div>
+                  <p className="text-gray-300 mb-6 italic text-sm">"{testimonial.quote}"</p>
+                  <div>
+                    <p className="font-bold text-white">{testimonial.name}</p>
+                    <p className="text-xs text-gray-500">{testimonial.role}</p>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

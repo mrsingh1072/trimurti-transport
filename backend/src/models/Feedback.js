@@ -11,9 +11,9 @@ const feedbackSchema = new mongoose.Schema(
     booking: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Booking',
-      required: true,
+      required: false,
       index: true,
-      unique: true, // One feedback per booking
+      sparse: true, // Allow multiple feedbacks without booking (general feedback)
     },
     message: {
       type: String,
