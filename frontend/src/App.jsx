@@ -28,6 +28,7 @@ import DashboardPage from './pages/DashboardPage'
 import LandingPage from './pages/LandingPage'
 import CustomerVehiclesPage from './pages/CustomerVehiclesPage'
 import MyBookingsPage from './pages/MyBookingsPage'
+import HistoryPage from './pages/HistoryPage'
 import ProfilePage from './pages/ProfilePage'
 
 // Admin Pages
@@ -85,6 +86,18 @@ export default function App() {
                 <div className="min-h-screen bg-gray-950 pt-20">
                   <Navbar />
                   <MyBookingsPage />
+                </div>
+              </CustomerRoute>
+            }
+          />
+
+          <Route
+            path="/history"
+            element={
+              <CustomerRoute>
+                <div className="min-h-screen bg-gray-950 pt-20">
+                  <Navbar />
+                  <HistoryPage />
                 </div>
               </CustomerRoute>
             }

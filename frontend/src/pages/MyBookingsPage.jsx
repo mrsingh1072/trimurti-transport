@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Calendar, Truck, X, Edit2, Loader, AlertCircle, CreditCard, FileText, MapPin, Clock, TrendingUp, RotateCcw, FileCheck, CheckCircle } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
 import EditBookingModal from '../components/EditBookingModal'
@@ -12,6 +13,7 @@ import { useAuth } from '../context/AuthContext'
 
 export default function MyBookingsPage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
   const [cancellingId, setCancellingId] = useState(null)
@@ -658,7 +660,10 @@ export default function MyBookingsPage() {
                 <Calendar size={48} className="mx-auto text-gray-500 mb-4" />
                 <p className="text-gray-400 text-lg font-semibold">No bookings yet</p>
                 <p className="text-gray-500 text-sm mt-2 mb-6">Start your journey by booking a vehicle from our amazing fleet</p>
-                <button className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg font-semibold hover:shadow-lg hover:shadow-cyan-500/40 transition">
+                <button 
+                  onClick={() => navigate('/vehicles')}
+                  className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg font-semibold hover:shadow-lg hover:shadow-cyan-500/40 transition"
+                >
                   Browse Vehicles
                 </button>
               </GlassCard>
