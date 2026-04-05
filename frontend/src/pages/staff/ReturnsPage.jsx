@@ -24,15 +24,15 @@ export default function ReturnsPage() {
       const data = Array.isArray(res) ? res : (res?.bookings || res?.data || [])
       const dataArray = Array.isArray(data) ? data : []
       
-      // Filter only active bookings
-      const activeBookings = dataArray.filter(
-        (b) => b.status === 'confirmed' || b.status === 'pending'
+      // Filter bookings where return has been requested
+      const pendingReturns = dataArray.filter(
+        (b) => b.returnStatus === 'requested'
       )
       
-      setBookings(activeBookings)
+      setBookings(pendingReturns)
     } catch (err) {
       console.error('Error fetching bookings:', err)
-      setError('Failed to load active bookings')
+      setError('Failed to load pending returns')
     } finally {
       setLoading(false)
     }

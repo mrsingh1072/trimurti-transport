@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
-import { Calendar, Truck, X, Edit2, Loader, AlertCircle, CreditCard, FileText, MapPin, Clock, TrendingUp } from 'lucide-react'
+import { Calendar, Truck, X, Edit2, Loader, AlertCircle, CreditCard, FileText, MapPin, Clock, TrendingUp, RotateCcw, FileCheck } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
 import EditBookingModal from '../components/EditBookingModal'
 import PaymentCheckoutModal from '../components/PaymentCheckoutModal'
 import PaymentDetailsModal from '../components/PaymentDetailsModal'
+import RequestReturnModal from '../components/RequestReturnModal'
+import RequestWaiverModal from '../components/RequestWaiverModal'
 import Card from '../components/Card'
-import { getUserBookings, cancelBooking, getPaymentById } from '../services/api'
+import { getUserBookings, cancelBooking, getPaymentById, createFinePaymentOrder, verifyFinePayment } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 
 export default function MyBookingsPage() {
@@ -21,6 +23,12 @@ export default function MyBookingsPage() {
   const [selectedPayment, setSelectedPayment] = useState(null)
   const [showPaymentDetails, setShowPaymentDetails] = useState(false)
   const [loadingPaymentId, setLoadingPaymentId] = useState(null)
+  const [returnRequestBooking, setReturnRequestBooking] = useState(null)
+  const [showReturnModal, setShowReturnModal] = useState(false)
+  const [waiverRequestBooking, setWaiverRequestBooking] = useState(null)
+  const [showWaiverModal, setShowWaiverModal] = useState(false)
+  const [finePaymentBooking, setFinePaymentBooking] = useState(null)
+  const [payingFineId, setPayingFineId] = useState(null)
 
   useEffect(() => {
     fetchBookings()
@@ -89,6 +97,97 @@ export default function MyBookingsPage() {
     }
   }
 
+  const handleRequestReturn = (booking) => {
+    setReturnRequestBooking(booking)
+    setShowReturnModal(true)
+  }
+
+  const handleReturnSuccess = async (updatedBooking) => {
+    setShowReturnModal(false)
+    setReturnRequestBooking(null)
+    await fetchBookings()
+  }
+
+  const handleRequestWaiver = (booking) => {
+    setWaiverRequestBooking(booking)
+    setShowWaiverModal(true)
+  }
+
+  const handleWaiverSuccess = async (updatedBooking) => {
+    setShowWaiverModal(false)
+    setWaiverRequestBooking(null)
+    await fetchBookings()
+  }
+
+  const handlePayFine = async (booking) => {
+    if (!booking._id) return
+    
+    setPayingFineId(booking._id)
+    try {
+      // Step 1: Create fine payment order
+      console.log('💰 Creating fine payment order...')
+      const orderData = await createFinePaymentOrder(booking._id)
+      
+      if (!orderData || !orderData.orderId) {
+        throw new Error('Failed to create payment order')
+      }
+
+      // Step 2: Initialize Razorpay checkout
+      console.log('🎫 Initializing Razorpay checkout...')
+      const options = {
+        key: orderData.key,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        order_id: orderData.orderId,
+        description: `Fine Payment - ${booking.vehicle?.name || 'Vehicle'} Rental`,
+        handler: async (response) => {
+          try {
+            // Step 3: Verify payment on backend
+            console.log('✅ Payment successful, verifying...')
+            await verifyFinePayment(
+              booking._id,
+              response.razorpay_order_id,
+              response.razorpay_payment_id,
+              response.razorpay_signature
+            )
+            
+            // Step 4: Refresh bookings to show updated status
+            console.log('📝 Refreshing bookings...')
+            await fetchBookings()
+            alert('Fine payment completed successfully!')
+          } catch (error) {
+            console.error('❌ Payment verification failed:', error)
+            alert('Payment verification failed. Please contact support.')
+          }
+        },
+        prefill: {
+          email: 'customer@email.com',
+          contact: booking.user?.phone || '',
+        },
+        notes: {
+          bookingId: booking._id,
+          vehicle: booking.vehicle?.name,
+        },
+        theme: {
+          color: '#3399cc',
+        },
+      }
+
+      const rzp = new window.Razorpay(options)
+      rzp.on('payment.failed', (response) => {
+        console.error('❌ Payment failed:', response.error)
+        alert(`Payment failed: ${response.error.description}`)
+      })
+      
+      rzp.open()
+    } catch (error) {
+      console.error('Failed to initiate fine payment:', error)
+      alert(error.message || 'Failed to initiate fine payment. Please try again.')
+    } finally {
+      setPayingFineId(null)
+    }
+  }
+
   const getStatusColor = (status) => {
     switch (status.toLowerCase()) {
       case 'confirmed':
@@ -131,12 +230,32 @@ export default function MyBookingsPage() {
     }
   }
 
+  const getReturnStatusLabel = (returnStatus) => {
+    switch (returnStatus?.toLowerCase()) {
+      case 'requested':
+        return '⏳ Return Requested'
+      case 'processed':
+        return '✓ Return Processed'
+      default:
+        return null
+    }
+  }
+
   const canCancel = (booking) => {
     return ['confirmed', 'pending'].includes(booking.status?.toLowerCase())
   }
 
   const canEdit = (booking) => {
     return ['confirmed', 'pending'].includes(booking.status?.toLowerCase())
+  }
+
+  const canRequestReturn = (booking) => {
+    // Return can be requested for ANY booking as long as it hasn't been already returned
+    return booking.returnStatus !== 'processed'
+  }
+
+  const canRequestWaiver = (booking) => {
+    return (booking.lateFee > 0 || booking.damageFee > 0) && !booking.waiverApproved
   }
 
   const needsPayment = (booking) => {
@@ -222,6 +341,7 @@ export default function MyBookingsPage() {
               <div className="space-y-6">
                 {bookings.map(booking => {
                   const duration = Math.ceil((new Date(booking.endDate) - new Date(booking.startDate)) / (1000 * 60 * 60 * 24))
+                  const returnStatusLabel = booking.returnStatus ? getReturnStatusLabel(booking.returnStatus) : null
                   
                   return (
                     <GlassCard key={booking._id} className="p-6 hover:border-cyan-500/50 transition" glow>
@@ -270,7 +390,7 @@ export default function MyBookingsPage() {
                           </div>
 
                           {/* Additional Fees */}
-                          {(booking.lateFee || booking.damageFee || booking.finalAmount) && (
+                          {(booking.lateFee || booking.damageFee || booking.finalAmount || booking.waiverApproved) && (
                             <div className="mt-4 pt-4 border-t border-white/10 text-sm space-y-2">
                               {booking.lateFee > 0 && (
                                 <div className="flex justify-between text-orange-400">
@@ -282,6 +402,12 @@ export default function MyBookingsPage() {
                                 <div className="flex justify-between text-red-400">
                                   <span>Damage Fee</span>
                                   <span>+₹{booking.damageFee.toLocaleString()}</span>
+                                </div>
+                              )}
+                              {booking.waiverApproved && (
+                                <div className="flex justify-between text-green-400">
+                                  <span>✓ Waiver Approved</span>
+                                  <span>Penalties Waived</span>
                                 </div>
                               )}
                               {booking.finalAmount && (
@@ -304,6 +430,21 @@ export default function MyBookingsPage() {
                             <span className={`inline-block text-xs px-4 py-2 rounded-full font-semibold border ${getPaymentStatusColor(booking.paymentStatus)}`}>
                               {getPaymentStatusLabel(booking.paymentStatus)}
                             </span>
+                            {returnStatusLabel && (
+                              <span className="inline-block text-xs px-4 py-2 rounded-full font-semibold border bg-blue-500/20 text-blue-300 border-blue-500/30">
+                                {returnStatusLabel}
+                              </span>
+                            )}
+                            {booking.waiverRequested && !booking.waiverApproved && (
+                              <span className="inline-block text-xs px-4 py-2 rounded-full font-semibold border bg-purple-500/20 text-purple-300 border-purple-500/30">
+                                ⏳ Waiver Pending
+                              </span>
+                            )}
+                            {booking.isFinePaid && (
+                              <span className="inline-block text-xs px-4 py-2 rounded-full font-semibold border bg-green-500/20 text-green-300 border-green-500/30">
+                                ✓ Fine Paid
+                              </span>
+                            )}
                           </div>
 
                           {/* Action Buttons */}
@@ -315,6 +456,20 @@ export default function MyBookingsPage() {
                               >
                                 <CreditCard size={16} />
                                 Pay Now
+                              </button>
+                            )}
+                            {(booking.lateFee > 0 || booking.damageFee > 0) && !booking.isFinePaid && (
+                              <button
+                                onClick={() => handlePayFine(booking)}
+                                disabled={payingFineId === booking._id}
+                                className="w-full px-4 py-2.5 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 text-white hover:shadow-lg hover:shadow-orange-500/30 transition flex items-center justify-center gap-2 text-sm font-semibold disabled:opacity-50"
+                              >
+                                {payingFineId === booking._id ? (
+                                  <Loader size={16} className="animate-spin" />
+                                ) : (
+                                  <CreditCard size={16} />
+                                )}
+                                Pay Fine
                               </button>
                             )}
                             {booking.paymentStatus === 'paid' && booking.paymentId && (
@@ -329,6 +484,32 @@ export default function MyBookingsPage() {
                                   <FileText size={16} />
                                 )}
                                 Receipt
+                              </button>
+                            )}
+                            {booking.returnStatus && booking.returnStatus !== 'none' ? (
+                              <button
+                                disabled
+                                className="w-full px-4 py-2.5 rounded-lg bg-gray-500/20 text-gray-300 cursor-not-allowed flex items-center justify-center gap-2 text-sm font-semibold border border-gray-500/30 opacity-50"
+                              >
+                                <RotateCcw size={16} />
+                                {booking.returnStatus === 'requested' ? 'Return Requested' : 'Return Processed'}
+                              </button>
+                            ) : canRequestReturn(booking) && (
+                              <button
+                                onClick={() => handleRequestReturn(booking)}
+                                className="w-full px-4 py-2.5 rounded-lg bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 transition flex items-center justify-center gap-2 text-sm font-semibold border border-blue-500/30"
+                              >
+                                <RotateCcw size={16} />
+                                Request Return
+                              </button>
+                            )}
+                            {canRequestWaiver(booking) && (
+                              <button
+                                onClick={() => handleRequestWaiver(booking)}
+                                className="w-full px-4 py-2.5 rounded-lg bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 transition flex items-center justify-center gap-2 text-sm font-semibold border border-purple-500/30"
+                              >
+                                <FileCheck size={16} />
+                                Request Waiver
                               </button>
                             )}
                             {canEdit(booking) && (
@@ -415,6 +596,30 @@ export default function MyBookingsPage() {
           }}
           payment={selectedPayment}
           booking={paymentBooking}
+        />
+      )}
+
+      {/* Request Return Modal */}
+      {showReturnModal && returnRequestBooking && (
+        <RequestReturnModal
+          booking={returnRequestBooking}
+          onClose={() => {
+            setShowReturnModal(false)
+            setReturnRequestBooking(null)
+          }}
+          onSuccess={handleReturnSuccess}
+        />
+      )}
+
+      {/* Request Waiver Modal */}
+      {showWaiverModal && waiverRequestBooking && (
+        <RequestWaiverModal
+          booking={waiverRequestBooking}
+          onClose={() => {
+            setShowWaiverModal(false)
+            setWaiverRequestBooking(null)
+          }}
+          onSuccess={handleWaiverSuccess}
         />
       )}
     </div>

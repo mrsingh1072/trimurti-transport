@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Menu, X, BarChart3, Truck, FileText, Settings, LogOut, Users, CreditCard, CheckCircle, User } from 'lucide-react'
+import { Menu, X, BarChart3, Truck, FileText, Settings, LogOut, Users, CreditCard, CheckCircle, User, AlertCircle } from 'lucide-react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
@@ -28,6 +28,7 @@ export default function AdminLayout({ children }) {
     { path: '/admin/bookings', label: 'Bookings', icon: FileText },
     { path: '/admin/vehicles', label: 'Vehicles', icon: Truck },
     { path: '/admin/payments', label: 'Payments', icon: CreditCard },
+    { path: '/admin/waivers', label: 'Waivers', icon: AlertCircle },
     { path: '/admin/staff-approvals', label: 'Staff Approvals', icon: CheckCircle },
     { path: '/admin/reports', label: 'Reports', icon: BarChart3 },
     { path: '/admin/settings', label: 'Settings', icon: Settings },

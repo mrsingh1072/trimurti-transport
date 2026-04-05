@@ -224,10 +224,180 @@ const getStats = async (req, res, next) => {
   }
 };
 
+/**
+ * POST /api/payments/pay-fine
+ * Create a Razorpay order for fine payment
+ */
+const createFinePaymentOrder = async (req, res, next) => {
+  try {
+    console.log('\n💰 [CREATE FINE ORDER] Incoming request:');
+    console.log('   - Body:', req.body);
+    console.log('   - User ID:', req.user._id);
+
+    const { bookingId } = req.body;
+    const userId = req.user._id;
+
+    // Validate required fields
+    if (!bookingId) {
+      console.log('❌ [CREATE FINE ORDER] Missing bookingId');
+      return res.status(400).json({
+        success: false,
+        message: 'bookingId is required',
+      });
+    }
+
+    console.log('✅ [CREATE FINE ORDER] Validation passed');
+    console.log('   - bookingId:', bookingId);
+
+    const orderData = await paymentService.createFinePaymentOrder(
+      userId,
+      bookingId
+    );
+
+    console.log('✅ [CREATE FINE ORDER] Order created successfully');
+    console.log('   - orderId:', orderData.orderId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Fine payment order created successfully',
+      data: orderData,
+    });
+  } catch (error) {
+    console.error('❌ [CREATE FINE ORDER] Error:', error.message);
+    
+    let errorMessage = error.message || 'Failed to create fine payment order';
+    if (error.error?.description) {
+      errorMessage = error.error.description;
+    }
+    if (error.error?.reason) {
+      errorMessage = `${errorMessage} - ${error.error.reason}`;
+    }
+    
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: errorMessage,
+      error: process.env.NODE_ENV === 'development' ? error.error : undefined,
+    });
+  }
+};
+
+/**
+ * POST /api/payments/verify-fine
+ * Verify Razorpay signature and complete fine payment
+ */
+const verifyFinePayment = async (req, res, next) => {
+  try {
+    console.log('\n✔️ [VERIFY FINE PAYMENT] Incoming request');
+    console.log('   - Body:', JSON.stringify(req.body, null, 2));
+
+    const { bookingId, razorpayOrderId, razorpayPaymentId, razorpaySignature } =
+      req.body;
+    const userId = req.user._id;
+
+    // Validate all required fields
+    if (!bookingId) {
+      console.log('❌ [VERIFY FINE PAYMENT] Missing bookingId');
+      return res.status(400).json({
+        success: false,
+        message: 'bookingId is required',
+      });
+    }
+
+    if (!razorpayOrderId) {
+      console.log('❌ [VERIFY FINE PAYMENT] Missing razorpayOrderId');
+      return res.status(400).json({
+        success: false,
+        message: 'razorpayOrderId is required',
+      });
+    }
+
+    if (!razorpayPaymentId) {
+      console.log('❌ [VERIFY FINE PAYMENT] Missing razorpayPaymentId');
+      return res.status(400).json({
+        success: false,
+        message: 'razorpayPaymentId is required',
+      });
+    }
+
+    if (!razorpaySignature) {
+      console.log('❌ [VERIFY FINE PAYMENT] Missing razorpaySignature');
+      return res.status(400).json({
+        success: false,
+        message: 'razorpaySignature is required',
+      });
+    }
+
+    console.log('✅ [VERIFY FINE PAYMENT] Validation passed');
+
+    const result = await paymentService.completeFinePayment(
+      userId,
+      bookingId,
+      razorpayOrderId,
+      razorpayPaymentId,
+      razorpaySignature
+    );
+
+    console.log('✅ [VERIFY FINE PAYMENT] Payment verified successfully');
+
+    res.status(200).json({
+      success: true,
+      message: 'Fine payment verified and completed successfully',
+      data: result,
+    });
+  } catch (error) {
+    console.error('❌ [VERIFY FINE PAYMENT] Error:', error.message);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || 'Fine payment verification failed',
+    });
+  }
+};
+
+/**
+ * POST /api/payments/pay-fine (DEPRECATED - use create-fine-order instead)
+ * Mark fine as paid for a booking
+ */
+const payFine = async (req, res, next) => {
+  try {
+    console.log('\n💰 [PAY FINE] Incoming request:');
+    console.log('   - Body:', req.body);
+    console.log('   - User ID:', req.user._id);
+
+    const { bookingId } = req.body;
+    const userId = req.user._id;
+
+    // Validate required fields
+    if (!bookingId) {
+      return res.status(400).json({
+        success: false,
+        message: 'bookingId is required',
+      });
+    }
+
+    // Call service to mark fine as paid
+    const result = await paymentService.markFinePaid(bookingId, userId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Fine payment recorded successfully',
+      booking: result,
+    });
+  } catch (error) {
+    console.error('❌ [PAY FINE] Error:', error.message);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || 'Fine payment failed',
+    });
+  }
+};
+
 module.exports = {
   createOrder,
   verifyPayment,
   getPayments,
   getPaymentById,
   getStats,
+  payFine,
+  createFinePaymentOrder,
+  verifyFinePayment,
 };

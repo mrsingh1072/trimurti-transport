@@ -485,6 +485,261 @@ const getPaymentById = async (paymentId, userId, userRole) => {
   return payment;
 };
 
+/**
+ * Mark fine (late fee + damage fee) as paid for a booking
+ */
+const markFinePaid = async (bookingId, userId) => {
+  try {
+    // Find booking
+    const booking = await Booking.findById(bookingId);
+    
+    if (!booking) {
+      const error = new Error('Booking not found');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    // Verify ownership
+    if (booking.user.toString() !== userId.toString()) {
+      const error = new Error('Not authorized to pay fine for this booking');
+      error.statusCode = 403;
+      throw error;
+    }
+
+    // Check if there are fines to pay
+    if (booking.lateFee <= 0 && booking.damageFee <= 0) {
+      const error = new Error('No pending fines for this booking');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // Mark fine as paid
+    booking.isFinePaid = true;
+    await booking.save();
+
+    return booking;
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Create a Razorpay order for fine payment
+ */
+const createFinePaymentOrder = async (userId, bookingId) => {
+  try {
+    console.log('\n💰 [FINE PAYMENT SERVICE] Creating fine payment order');
+    console.log('   - User ID:', userId);
+    console.log('   - Booking ID:', bookingId);
+
+    // Validate booking exists
+    console.log('\n🔎 [FINE PAYMENT SERVICE] Looking up booking...');
+    const booking = await Booking.findById(bookingId).populate('user vehicle');
+    console.log('✅ [FINE PAYMENT SERVICE] Database query successful');
+    
+    if (!booking) {
+      console.log('❌ [FINE PAYMENT SERVICE] Booking not found');
+      const error = new Error('Booking not found');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    console.log('✅ [FINE PAYMENT SERVICE] Booking found');
+    console.log('   - Late Fee:', booking.lateFee);
+    console.log('   - Damage Fee:', booking.damageFee);
+
+    // Verify user owns the booking
+    console.log('\n🔐 [FINE PAYMENT SERVICE] Authorization Check');
+    const bookingUserId = booking.user ? booking.user._id.toString() : booking.user.toString();
+    const currentUserId = userId.toString();
+    
+    if (bookingUserId !== currentUserId) {
+      console.log('❌ [FINE PAYMENT SERVICE] Authorization failed');
+      const error = new Error('Not authorized to pay fine for this booking');
+      error.statusCode = 403;
+      throw error;
+    }
+    console.log('✅ [FINE PAYMENT SERVICE] Authorization passed');
+
+    // Check if there are fines to pay
+    const totalFine = (booking.lateFee || 0) + (booking.damageFee || 0);
+    console.log('\n📊 [FINE PAYMENT SERVICE] Fine amount calculation');
+    console.log('   - Late Fee:', booking.lateFee || 0);
+    console.log('   - Damage Fee:', booking.damageFee || 0);
+    console.log('   - Total Fine:', totalFine);
+
+    if (totalFine <= 0) {
+      console.log('❌ [FINE PAYMENT SERVICE] No pending fines');
+      const error = new Error('No pending fines for this booking');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (booking.isFinePaid) {
+      console.log('⚠️ [FINE PAYMENT SERVICE] Fine already paid');
+      const error = new Error('Fine already paid for this booking');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // Create Razorpay order
+    console.log('\n💳 [FINE PAYMENT SERVICE] Preparing Razorpay order...');
+    const options = {
+      amount: Math.round(totalFine * 100), // Amount in paise
+      currency: 'INR',
+      receipt: `fine_${bookingId.toString().substring(0, 20)}`, // Max 40 chars
+      description: `Fine Payment - ${booking.vehicle?.name || 'Vehicle'} (Late: ₹${booking.lateFee || 0}, Damage: ₹${booking.damageFee || 0})`,
+    };
+
+    console.log('📝 [FINE PAYMENT SERVICE] Order options:');
+    console.log('   - Amount:', options.amount, 'paise (₹' + (options.amount / 100) + ')');
+    console.log('   - Currency:', options.currency);
+    console.log('   - Receipt:', options.receipt);
+    console.log('   - Description:', options.description);
+
+    console.log('\n🚀 [FINE PAYMENT SERVICE] Calling Razorpay API...');
+    const order = await razorpay.orders.create(options);
+    console.log('✅ [FINE PAYMENT SERVICE] Razorpay API call successful');
+    console.log('   - Order ID:', order.id);
+    console.log('   - Amount:', order.amount);
+
+    console.log('\n💾 [FINE PAYMENT SERVICE] Creating payment record...');
+    const payment = await Payment.create({
+      user: userId,
+      booking: bookingId,
+      amount: totalFine,
+      status: PAYMENT_STATUS.PENDING,
+      method: 'upi',
+      razorpayOrderId: order.id,
+      description: options.description,
+    });
+    console.log('✅ [FINE PAYMENT SERVICE] Payment record created');
+    console.log('   - Payment ID:', payment._id);
+
+    console.log('\n✅ [FINE PAYMENT SERVICE] Order creation complete');
+    return {
+      orderId: order.id,
+      paymentId: payment._id,
+      amount: order.amount,
+      currency: order.currency,
+      key: process.env.RAZORPAY_KEY_ID,
+    };
+  } catch (error) {
+    console.error('\n❌ [FINE PAYMENT SERVICE] Error creating order:');
+    console.error('   - Error message:', error.message);
+    console.error('   - Status code:', error.statusCode || 500);
+    throw error;
+  }
+};
+
+/**
+ * Complete fine payment after verification
+ */
+const completeFinePayment = async (
+  userId,
+  bookingId,
+  razorpayOrderId,
+  razorpayPaymentId,
+  razorpaySignature
+) => {
+  try {
+    console.log('\n🔐 [FINE PAYMENT] Starting verification and completion');
+    console.log('   - User ID:', userId);
+    console.log('   - Booking ID:', bookingId);
+    console.log('   - Order ID:', razorpayOrderId);
+    console.log('   - Payment ID:', razorpayPaymentId);
+
+    // Step 1: Verify signature
+    console.log('\n✔️ [FINE PAYMENT] Verifying Razorpay signature...');
+    const isValidSignature = verifyPaymentSignature(
+      razorpayOrderId,
+      razorpayPaymentId,
+      razorpaySignature
+    );
+
+    if (!isValidSignature) {
+      console.log('❌ [FINE PAYMENT] Signature verification failed');
+      const error = new Error('Invalid payment signature');
+      error.statusCode = 400;
+      throw error;
+    }
+    console.log('✅ [FINE PAYMENT] Signature verified successfully');
+
+    // Step 2: Find payment record
+    console.log('\n🔍 [FINE PAYMENT] Looking up payment record...');
+    const payment = await Payment.findOne({
+      booking: bookingId,
+      razorpayOrderId,
+    });
+
+    if (!payment) {
+      console.log('❌ [FINE PAYMENT] Payment record not found');
+      const error = new Error('Payment record not found');
+      error.statusCode = 404;
+      throw error;
+    }
+    console.log('✅ [FINE PAYMENT] Payment record found');
+    console.log('   - Current status:', payment.status);
+
+    // Step 3: Verify authorization
+    console.log('\n🛡️ [FINE PAYMENT] Verifying user authorization...');
+    const paymentUserId = payment.user.toString();
+    const requestUserId = userId.toString();
+    
+    if (paymentUserId !== requestUserId) {
+      console.log('❌ [FINE PAYMENT] Authorization failed');
+      const error = new Error('Not authorized to complete this payment');
+      error.statusCode = 403;
+      throw error;
+    }
+    console.log('✅ [FINE PAYMENT] User authorization verified');
+
+    // Step 4: Check if already completed
+    if (payment.status === PAYMENT_STATUS.COMPLETED) {
+      console.log('⚠️ [FINE PAYMENT] Payment already completed');
+      const booking = await Booking.findById(bookingId);
+      return {
+        payment: payment.toObject(),
+        booking: booking.toObject(),
+      };
+    }
+
+    // Step 5: Update payment record
+    console.log('\n💾 [FINE PAYMENT] Updating payment record...');
+    payment.status = PAYMENT_STATUS.COMPLETED;
+    payment.razorpayPaymentId = razorpayPaymentId;
+    payment.razorpaySignature = razorpaySignature;
+    await payment.save();
+    console.log('✅ [FINE PAYMENT] Payment record updated');
+
+    // Step 6: Update booking - mark fine as paid
+    console.log('\n📋 [FINE PAYMENT] Updating booking (marking fine as paid)...');
+    const booking = await Booking.findByIdAndUpdate(
+      bookingId,
+      { isFinePaid: true },
+      { new: true }
+    );
+
+    if (!booking) {
+      console.log('⚠️ [FINE PAYMENT] Booking not found for update');
+    } else {
+      console.log('✅ [FINE PAYMENT] Booking updated successfully');
+      console.log('   - isFinePaid:', booking.isFinePaid);
+    }
+
+    console.log('\n✅ [FINE PAYMENT] Fine payment completion successful');
+    return {
+      payment: payment.toObject(),
+      booking: booking.toObject(),
+    };
+  } catch (error) {
+    console.error('\n❌ [FINE PAYMENT] Error completing fine payment:');
+    console.error('   - Error message:', error.message);
+    console.error('   - Status code:', error.statusCode || 500);
+    throw error;
+  }
+};
+
 module.exports = {
   createOrderForBooking,
   verifyPaymentSignature,
@@ -492,4 +747,7 @@ module.exports = {
   getPayments,
   getPaymentStats,
   getPaymentById,
+  markFinePaid,
+  createFinePaymentOrder,
+  completeFinePayment,
 };

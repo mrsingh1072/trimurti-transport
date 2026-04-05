@@ -241,16 +241,6 @@ export const updateBooking = async (bookingId, updateData) => {
 
 // ===================== STAFF OPERATIONS =====================
 
-// Process return
-export const processReturn = async (returnData) => {
-  try {
-    const response = await apiClient.post('/returns', returnData)
-    return response.data
-  } catch (error) {
-    handleError(error)
-  }
-}
-
 // Create vehicle
 export const createVehicle = async (vehicleData) => {
   try {
@@ -403,6 +393,73 @@ export const verifyPayment = async (bookingId, razorpayOrderId, razorpayPaymentI
   }
 }
 
+// Pay fine (late fee + damage fee) - Create order
+export const createFinePaymentOrder = async (bookingId) => {
+  try {
+    console.log('\n💰 [CREATE FINE ORDER] Starting...');
+    console.log('   - Booking ID:', bookingId);
+    
+    const response = await apiClient.post('/payments/pay-fine', { bookingId })
+    
+    console.log('✅ [CREATE FINE ORDER] Success');
+    console.log('   - Order ID:', response.data.data?.orderId);
+    console.log('   - Amount:', response.data.data?.amount);
+    
+    return response.data.data
+  } catch (error) {
+    console.error('❌ [CREATE FINE ORDER] Error:', {
+      status: error.response?.status,
+      message: error.response?.data?.message || error.message,
+      data: error.response?.data
+    })
+    handleError(error)
+    throw error
+  }
+}
+
+// Verify fine payment (Razorpay signature verification)
+export const verifyFinePayment = async (bookingId, razorpayOrderId, razorpayPaymentId, razorpaySignature) => {
+  try {
+    console.log('\n✔️ [VERIFY FINE PAYMENT] Starting verification...');
+    console.log('   - Booking ID:', bookingId);
+    console.log('   - Order ID:', razorpayOrderId);
+    console.log('   - Payment ID:', razorpayPaymentId);
+    
+    const payload = {
+      bookingId,
+      razorpayOrderId,
+      razorpayPaymentId,
+      razorpaySignature,
+    };
+    
+    const response = await apiClient.post('/payments/verify-fine', payload)
+    
+    console.log('✅ [VERIFY FINE PAYMENT] Success');
+    console.log('   - Fine payment verified and completed');
+    
+    return response.data.data
+  } catch (error) {
+    console.error('❌ [VERIFY FINE PAYMENT] Error:', {
+      status: error.response?.status,
+      message: error.response?.data?.message || error.message,
+      data: error.response?.data
+    })
+    handleError(error)
+    throw error
+  }
+}
+
+// Pay fine - DEPRECATED (use createFinePaymentOrder instead)
+export const payFine = async (bookingId) => {
+  try {
+    const response = await apiClient.post('/payments/pay-fine', { bookingId })
+    return response.data
+  } catch (error) {
+    handleError(error)
+    throw error
+  }
+}
+
 // Get payment stats (admin only)
 export const getPaymentStats = async () => {
   try {
@@ -506,6 +563,199 @@ export const rejectStaff = async (staffId) => {
     return response.data
   } catch (error) {
     handleError(error)
+  }
+}
+
+// ===================== ENHANCED BOOKING OPERATIONS =====================
+
+// Get booking details
+export const getBookingDetails = async (bookingId) => {
+  try {
+    const response = await apiClient.get(`/bookings/details/${bookingId}`)
+    return response.data.booking
+  } catch (error) {
+    handleError(error)
+    return null
+  }
+}
+
+// REQUEST RETURN (Customer)
+export const requestReturn = async (bookingId) => {
+  try {
+    const response = await apiClient.post(`/bookings/${bookingId}/request-return`)
+    return response.data
+  } catch (error) {
+    handleError(error)
+  }
+}
+
+// REQUEST WAIVER (Customer)
+export const requestWaiver = async (bookingId, reason) => {
+  try {
+    const response = await apiClient.post(`/bookings/${bookingId}/request-waiver`, { reason })
+    return response.data
+  } catch (error) {
+    handleError(error)
+  }
+}
+
+// PROCESS RETURN (Staff/Admin)
+export const processReturn = async (bookingId, actualReturnDate, damageFee) => {
+  try {
+    const response = await apiClient.post(`/bookings/${bookingId}/process-return`, {
+      actualReturnDate,
+      damageFee
+    })
+    return response.data
+  } catch (error) {
+    handleError(error)
+  }
+}
+
+// UPDATE PENALTY (Staff/Admin)
+export const updatePenalty = async (bookingId, lateFee, damageFee) => {
+  try {
+    const response = await apiClient.put(`/bookings/${bookingId}/penalty`, {
+      lateFee,
+      damageFee
+    })
+    return response.data
+  } catch (error) {
+    handleError(error)
+  }
+}
+
+// HANDLE WAIVER (Staff/Admin)
+export const handleWaiver = async (bookingId, approve) => {
+  try {
+    const response = await apiClient.put(`/bookings/${bookingId}/waiver`, { approve })
+    return response.data
+  } catch (error) {
+    handleError(error)
+  }
+}
+
+// STAFF/ADMIN: GET LATE BOOKINGS
+export const getLateBookings = async () => {
+  try {
+    const response = await apiClient.get('/bookings/late/bookings')
+    return response.data.bookings
+  } catch (error) {
+    handleError(error)
+    return []
+  }
+}
+
+// STAFF/ADMIN: GET PENDING RETURNS
+export const getPendingReturns = async () => {
+  try {
+    const response = await apiClient.get('/bookings/returns/pending')
+    return response.data.bookings
+  } catch (error) {
+    handleError(error)
+    return []
+  }
+}
+
+// STAFF/ADMIN: GET PENDING WAIVERS
+export const getPendingWaivers = async () => {
+  try {
+    const response = await apiClient.get('/bookings/waivers/pending')
+    return response.data.bookings
+  } catch (error) {
+    handleError(error)
+    return []
+  }
+}
+
+// ===================== ADMIN OPERATIONS =====================
+
+// ADMIN: Dashboard
+export const getAdminDashboard = async () => {
+  try {
+    const response = await apiClient.get('/admin/dashboard')
+    return response.data
+  } catch (error) {
+    handleError(error)
+    return null
+  }
+}
+
+// ADMIN: View all bookings with filters
+export const viewAllBookings = async (filters = {}) => {
+  try {
+    const params = new URLSearchParams(filters).toString()
+    const url = `/admin/bookings/all${params ? '?' + params : ''}`
+    const response = await apiClient.get(url)
+    return response.data.bookings
+  } catch (error) {
+    handleError(error)
+    return []
+  }
+}
+
+// ADMIN: View late bookings
+export const viewLateBookings = async () => {
+  try {
+    const response = await apiClient.get('/admin/bookings/late')
+    return response.data.bookings
+  } catch (error) {
+    handleError(error)
+    return []
+  }
+}
+
+// ADMIN: View pending returns
+export const viewPendingReturns = async () => {
+  try {
+    const response = await apiClient.get('/admin/bookings/pending-returns')
+    return response.data.bookings
+  } catch (error) {
+    handleError(error)
+    return []
+  }
+}
+
+// ADMIN: View pending waivers
+export const viewPendingWaivers = async () => {
+  try {
+    const response = await apiClient.get('/admin/bookings/pending-waivers')
+    return response.data.bookings
+  } catch (error) {
+    handleError(error)
+    return []
+  }
+}
+
+// ADMIN: Override booking
+export const overrideBooking = async (bookingId, overrideData) => {
+  try {
+    const response = await apiClient.put(`/admin/bookings/${bookingId}/override`, overrideData)
+    return response.data
+  } catch (error) {
+    handleError(error)
+  }
+}
+
+// ADMIN: View action log
+export const viewActionLog = async () => {
+  try {
+    const response = await apiClient.get('/admin/action-log')
+    return response.data.actionLog
+  } catch (error) {
+    handleError(error)
+    return []
+  }
+}
+
+// ADMIN: Get revenue analytics
+export const getRevenueAnalytics = async () => {
+  try {
+    const response = await apiClient.get('/admin/analytics/revenue')
+    return response.data
+  } catch (error) {
+    handleError(error)
+    return null
   }
 }
 

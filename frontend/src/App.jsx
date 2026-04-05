@@ -21,6 +21,7 @@ import StaffBookingsPage from './pages/staff/BookingsPage'
 import StaffReturnsPage from './pages/staff/ReturnsPage'
 import StaffVehiclesPage from './pages/staff/VehiclesPage'
 import StaffPaymentsPage from './pages/staff/PaymentsPage'
+import StaffWaiverManagement from './pages/staff/WaiverManagement'
 
 // Customer Pages
 import DashboardPage from './pages/DashboardPage'
@@ -38,6 +39,7 @@ import AdminVehiclesPage from './pages/admin/VehicleManagement'
 import AdminReportsPage from './pages/admin/ReportsPage'
 import AdminSettingsPage from './pages/admin/SettingsPage'
 import StaffApprovalPage from './pages/admin/StaffApprovalPage'
+import AdminWaiverManagement from './pages/admin/WaiverManagement'
 
 export default function App() {
   return (
@@ -154,6 +156,14 @@ export default function App() {
               </StaffRoute>
             }
           />
+          <Route
+            path="/staff/waivers"
+            element={
+              <StaffRoute>
+                <StaffWaiverManagement />
+              </StaffRoute>
+            }
+          />
 
           {/* Admin Routes */}
           <Route
@@ -193,6 +203,14 @@ export default function App() {
             element={
               <AdminRoute>
                 <AdminPaymentsPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/waivers"
+            element={
+              <AdminRoute>
+                <AdminWaiverManagement />
               </AdminRoute>
             }
           />
