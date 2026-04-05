@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Menu, X, BarChart3, BookOpen, Truck, RefreshCw, LogOut, User, AlertCircle } from 'lucide-react'
+import { Menu, X, BarChart3, BookOpen, Truck, RefreshCw, LogOut, User, AlertCircle, MessageCircle } from 'lucide-react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
@@ -28,6 +28,7 @@ export default function StaffLayout({ children }) {
     { path: '/staff/returns', label: 'Process Return', icon: RefreshCw },
     { path: '/staff/waivers', label: 'Waivers', icon: AlertCircle },
     { path: '/staff/vehicles', label: 'Vehicles', icon: Truck },
+    { path: '/staff/feedback', label: 'Feedback', icon: MessageCircle },
   ]
 
   return (

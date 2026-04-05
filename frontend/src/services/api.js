@@ -759,4 +759,66 @@ export const getRevenueAnalytics = async () => {
   }
 }
 
+// ===================== FEEDBACK & RATING SYSTEM =====================
+
+// CUSTOMER: Submit feedback
+export const submitFeedback = async (feedbackData) => {
+  try {
+    console.log('\n📝 [SUBMIT FEEDBACK] Starting...');
+    console.log('   - Booking ID:', feedbackData.bookingId);
+    console.log('   - Rating:', feedbackData.rating);
+    
+    const response = await apiClient.post('/feedback', feedbackData)
+    
+    console.log('✅ [SUBMIT FEEDBACK] Success');
+    return response.data
+  } catch (error) {
+    console.error('❌ [SUBMIT FEEDBACK] Error:', error.response?.data?.message || error.message);
+    handleError(error)
+    throw error
+  }
+}
+
+// PUBLIC: Get latest feedback (for landing page)
+export const getLatestFeedback = async () => {
+  try {
+    const response = await apiClient.get('/feedback/latest')
+    console.log(`⭐ [GET LATEST FEEDBACK] Retrieved ${response.data.count} feedbacks`);
+    return response.data.feedbacks || []
+  } catch (error) {
+    console.error('❌ [GET LATEST FEEDBACK] Error:', error.message);
+    return []
+  }
+}
+
+// ADMIN/STAFF: Get all feedback
+export const getAllFeedback = async () => {
+  try {
+    console.log('\n📊 [GET ALL FEEDBACK] Fetching...');
+    const response = await apiClient.get('/feedback')
+    
+    console.log(`✅ [GET ALL FEEDBACK] Retrieved ${response.data.count} feedbacks`);
+    return response.data.feedbacks || []
+  } catch (error) {
+    console.error('❌ [GET ALL FEEDBACK] Error:', error.message);
+    handleError(error)
+    return []
+  }
+}
+
+// PUBLIC: Get average rating
+export const getAverageRating = async () => {
+  try {
+    const response = await apiClient.get('/feedback/average')
+    return response.data
+  } catch (error) {
+    console.error('❌ [GET AVERAGE RATING] Error:', error.message);
+    return {
+      averageRating: 0,
+      totalFeedbacks: 0,
+      ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+    }
+  }
+}
+
 export default apiClient

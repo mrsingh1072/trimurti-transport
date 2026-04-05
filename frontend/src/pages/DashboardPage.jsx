@@ -1,4 +1,4 @@
-import { Users, TrendingUp, DollarSign, Truck, Clock, Calendar } from 'lucide-react'
+import { Users, TrendingUp, DollarSign, Truck, Clock, Calendar, MessageCircle } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
@@ -94,7 +94,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           <button 
             onClick={() => navigate('/vehicles')}
             className="group relative overflow-hidden rounded-2xl p-8 border border-white/10 hover:border-cyan-500/50 transition"
@@ -123,6 +123,22 @@ export default function DashboardPage() {
               </div>
               <div className="p-4 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 group-hover:from-purple-500/40 group-hover:to-pink-500/40 transition">
                 <Calendar size={28} className="text-purple-400" />
+              </div>
+            </div>
+          </button>
+
+          <button 
+            onClick={() => navigate('/feedback')}
+            className="group relative overflow-hidden rounded-2xl p-8 border border-white/10 hover:border-yellow-500/50 transition"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition"></div>
+            <div className="relative flex items-center justify-between">
+              <div>
+                <h3 className="text-2xl font-bold text-white mb-2">Give Feedback</h3>
+                <p className="text-gray-400">Share your rental experience</p>
+              </div>
+              <div className="p-4 rounded-xl bg-gradient-to-br from-yellow-500/20 to-orange-500/20 group-hover:from-yellow-500/40 group-hover:to-orange-500/40 transition">
+                <MessageCircle size={28} className="text-yellow-400" />
               </div>
             </div>
           </button>

@@ -22,6 +22,7 @@ import StaffReturnsPage from './pages/staff/ReturnsPage'
 import StaffVehiclesPage from './pages/staff/VehiclesPage'
 import StaffPaymentsPage from './pages/staff/PaymentsPage'
 import StaffWaiverManagement from './pages/staff/WaiverManagement'
+import StaffFeedbackPage from './pages/staff/FeedbackPage'
 
 // Customer Pages
 import DashboardPage from './pages/DashboardPage'
@@ -29,6 +30,7 @@ import LandingPage from './pages/LandingPage'
 import CustomerVehiclesPage from './pages/CustomerVehiclesPage'
 import MyBookingsPage from './pages/MyBookingsPage'
 import HistoryPage from './pages/HistoryPage'
+import FeedbackPage from './pages/FeedbackPage'
 import ProfilePage from './pages/ProfilePage'
 
 // Admin Pages
@@ -41,6 +43,7 @@ import AdminReportsPage from './pages/admin/ReportsPage'
 import AdminSettingsPage from './pages/admin/SettingsPage'
 import StaffApprovalPage from './pages/admin/StaffApprovalPage'
 import AdminWaiverManagement from './pages/admin/WaiverManagement'
+import AdminFeedbackPage from './pages/admin/FeedbackPage'
 
 export default function App() {
   return (
@@ -98,6 +101,18 @@ export default function App() {
                 <div className="min-h-screen bg-gray-950 pt-20">
                   <Navbar />
                   <HistoryPage />
+                </div>
+              </CustomerRoute>
+            }
+          />
+
+          <Route
+            path="/feedback"
+            element={
+              <CustomerRoute>
+                <div className="min-h-screen bg-gray-950 pt-20">
+                  <Navbar />
+                  <FeedbackPage />
                 </div>
               </CustomerRoute>
             }
@@ -174,6 +189,14 @@ export default function App() {
             element={
               <StaffRoute>
                 <StaffWaiverManagement />
+              </StaffRoute>
+            }
+          />
+          <Route
+            path="/staff/feedback"
+            element={
+              <StaffRoute>
+                <StaffFeedbackPage />
               </StaffRoute>
             }
           />
@@ -256,6 +279,14 @@ export default function App() {
             element={
               <AdminRoute>
                 <StaffApprovalPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/feedback"
+            element={
+              <AdminRoute>
+                <AdminFeedbackPage />
               </AdminRoute>
             }
           />

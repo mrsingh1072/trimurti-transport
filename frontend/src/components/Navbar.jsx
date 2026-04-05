@@ -35,6 +35,7 @@ export default function Navbar() {
             <Link to="/vehicles" className="text-gray-300 hover:text-white transition">Vehicles</Link>
             <Link to="/my-bookings" className="text-gray-300 hover:text-white transition">My Bookings</Link>
             <Link to="/history" className="text-gray-300 hover:text-white transition">History</Link>
+            <Link to="/feedback" className="text-gray-300 hover:text-white transition">Feedback</Link>
             <Link to="/dashboard" className="text-gray-300 hover:text-white transition">Dashboard</Link>
           </div>
         ) : (
@@ -109,6 +110,7 @@ export default function Navbar() {
                 <Link to="/vehicles" className="text-gray-300 hover:text-white transition">Vehicles</Link>
                 <Link to="/my-bookings" className="text-gray-300 hover:text-white transition">My Bookings</Link>
                 <Link to="/history" className="text-gray-300 hover:text-white transition">History</Link>
+                <Link to="/feedback" className="text-gray-300 hover:text-white transition">Feedback</Link>
                 <Link to="/dashboard" className="text-gray-300 hover:text-white transition">Dashboard</Link>
                 <button
                   onClick={() => {

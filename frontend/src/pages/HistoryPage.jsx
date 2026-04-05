@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Calendar, Truck, FileText, Loader, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react'
+import { Calendar, Truck, FileText, Loader, AlertCircle, CheckCircle, RefreshCw, MessageCircle } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
 import PaymentDetailsModal from '../components/PaymentDetailsModal'
+import FeedbackModal from '../components/FeedbackModal'
 import Card from '../components/Card'
 import { getUserBookings, getPaymentById } from '../services/api'
 import { useAuth } from '../context/AuthContext'
@@ -14,6 +15,8 @@ export default function HistoryPage() {
   const [selectedPayment, setSelectedPayment] = useState(null)
   const [showPaymentDetails, setShowPaymentDetails] = useState(false)
   const [loadingPaymentId, setLoadingPaymentId] = useState(null)
+  const [selectedBookingForFeedback, setSelectedBookingForFeedback] = useState(null)
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false)
 
   useEffect(() => {
     fetchBookings()
@@ -71,6 +74,22 @@ export default function HistoryPage() {
     setRefreshing(true)
     await fetchBookings()
     setRefreshing(false)
+  }
+
+  const handleOpenFeedbackModal = (booking) => {
+    setSelectedBookingForFeedback(booking)
+    setShowFeedbackModal(true)
+  }
+
+  const handleCloseFeedbackModal = () => {
+    setShowFeedbackModal(false)
+    setSelectedBookingForFeedback(null)
+  }
+
+  const handleFeedbackSuccess = () => {
+    console.log('✓ Feedback submitted successfully')
+    // Refresh bookings to ensure feedback state is updated
+    fetchBookings()
   }
 
   const getStatusColor = (status) => {
@@ -342,6 +361,13 @@ export default function HistoryPage() {
                                 Receipt
                               </button>
                             )}
+                            <button
+                              onClick={() => handleOpenFeedbackModal(booking)}
+                              className="w-full px-4 py-2.5 rounded-lg bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 transition flex items-center justify-center gap-2 text-sm font-semibold border border-purple-500/30"
+                            >
+                              <MessageCircle size={16} />
+                              Give Feedback
+                            </button>
                             <div className="px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm font-semibold text-center flex items-center justify-center gap-2">
                               <CheckCircle size={16} />
                               Completed
@@ -374,6 +400,16 @@ export default function HistoryPage() {
           }}
           payment={selectedPayment}
           booking={historyBookings.find(b => b.paymentId === selectedPayment._id)}
+        />
+      )}
+
+      {/* Feedback Modal */}
+      {showFeedbackModal && selectedBookingForFeedback && (
+        <FeedbackModal
+          isOpen={showFeedbackModal}
+          booking={selectedBookingForFeedback}
+          onClose={handleCloseFeedbackModal}
+          onSuccess={handleFeedbackSuccess}
         />
       )}
     </div>
