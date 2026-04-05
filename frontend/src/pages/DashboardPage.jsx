@@ -88,7 +88,7 @@ export default function DashboardPage() {
               <span className="text-xs px-3 py-1 rounded-full bg-purple-500/20 text-purple-300">Total</span>
             </div>
             <p className="text-gray-400 text-sm mb-2">Total Spent</p>
-            <h2 className="text-4xl font-bold text-white">${totalSpent.toFixed(0)}</h2>
+            <h2 className="text-4xl font-bold text-white">₹{totalSpent.toFixed(0)}</h2>
             <p className="text-xs text-gray-500 mt-3">Across all bookings</p>
           </Card>
         </div>
@@ -159,7 +159,7 @@ export default function DashboardPage() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-white">${booking.totalPrice?.toFixed(2) || '0.00'}</p>
+                    <p className="font-semibold text-white">₹{booking.totalPrice?.toFixed(2) || '0.00'}</p>
                     <span className={`inline-block text-xs px-3 py-1 rounded-full font-medium mt-2 ${
                       booking.paymentStatus === 'paid' 
                         ? 'bg-green-500/20 text-green-300' 

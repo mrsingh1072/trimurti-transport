@@ -80,7 +80,7 @@ export default function DashboardOverview() {
         <StatCard
           icon={TrendingUp}
           label="Total Revenue"
-          value={loading ? '...' : `$${(bookingStats?.totalRevenue || 0).toLocaleString()}`}
+          value={loading ? '...' : `₹${(bookingStats?.totalRevenue || 0).toLocaleString()}`}
           color="text-pink-400"
           change="+24%"
           positive={true}
@@ -146,7 +146,7 @@ export default function DashboardOverview() {
             <div className="mt-8 pt-8 border-t border-white/10 grid grid-cols-3 gap-8">
               <div>
                 <p className="text-gray-400 text-sm mb-2">Avg. Revenue</p>
-                <p className="text-2xl font-bold text-white">$12,500</p>
+                <p className="text-2xl font-bold text-white">₹12,500</p>
               </div>
               <div>
                 <p className="text-gray-400 text-sm mb-2">Peak Day</p>
@@ -165,11 +165,11 @@ export default function DashboardOverview() {
           <h3 className="text-2xl font-bold text-white mb-6">Top Vehicles</h3>
           <div className="space-y-4">
             {[
-              { name: 'Mahindra Thar', bookings: 12, revenue: '$2,400' },
-              { name: 'Hyundai Creta', bookings: 8, revenue: '$1,600' },
-              { name: 'Toyota Innova', bookings: 6, revenue: '$1,200' },
-              { name: 'Maruti Swift', bookings: 5, revenue: '$800' },
-              { name: 'Honda CR-V', bookings: 4, revenue: '$2,000' }
+              { name: 'Mahindra Thar', bookings: 12, revenue: '₹2,400' },
+              { name: 'Hyundai Creta', bookings: 8, revenue: '₹1,600' },
+              { name: 'Toyota Innova', bookings: 6, revenue: '₹1,200' },
+              { name: 'Maruti Swift', bookings: 5, revenue: '₹800' },
+              { name: 'Honda CR-V', bookings: 4, revenue: '₹2,000' }
             ].map((vehicle, i) => (
               <div key={i} className="group cursor-pointer">
                 <div className="flex items-center justify-between mb-2 group-hover:translate-x-1 transition">
