@@ -56,7 +56,10 @@ export default function LandingPage() {
       try {
         setFeedbackLoading(true)
         const feedbackResponse = await getLatestFeedback()
-        if (feedbackResponse && feedbackResponse.feedbacks) {
+        console.log('📥 Landing Page - Feedback Response:', feedbackResponse)
+        if (feedbackResponse && Array.isArray(feedbackResponse)) {
+          setFeedback(feedbackResponse)
+        } else if (feedbackResponse && feedbackResponse.feedbacks) {
           setFeedback(feedbackResponse.feedbacks)
         }
       } catch (err) {
