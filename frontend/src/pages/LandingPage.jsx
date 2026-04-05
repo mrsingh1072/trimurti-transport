@@ -706,6 +706,7 @@ export default function LandingPage() {
               <h4 className="font-bold text-white mb-4">Contact</h4>
               <p className="text-gray-500 text-sm">trimurtitransport1072@gmail.com</p>
               <p className="text-gray-500 text-sm">+91 8709905612</p>
+              <p className="text-gray-500 text-sm">Vill+Post-Bihta,Bhojpur,Bihar,802209</p>
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
