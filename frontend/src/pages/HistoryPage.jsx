@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Calendar, Truck, FileText, Loader, AlertCircle, CheckCircle } from 'lucide-react'
+import { Calendar, Truck, FileText, Loader, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
 import PaymentDetailsModal from '../components/PaymentDetailsModal'
 import Card from '../components/Card'
@@ -10,19 +10,38 @@ export default function HistoryPage() {
   const { user } = useAuth()
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [selectedPayment, setSelectedPayment] = useState(null)
   const [showPaymentDetails, setShowPaymentDetails] = useState(false)
   const [loadingPaymentId, setLoadingPaymentId] = useState(null)
 
   useEffect(() => {
     fetchBookings()
+    
+    // Auto-refresh data every 30 seconds to ensure latest completed bookings show
+    const interval = setInterval(() => {
+      console.log('🔄 Auto-refreshing booking data...')
+      fetchBookings()
+    }, 30000)
+    
+    return () => clearInterval(interval)
   }, [])
 
   const fetchBookings = async () => {
     setLoading(true)
     try {
       const data = await getUserBookings()
-      setBookings(Array.isArray(data) ? data : data.bookings || [])
+      const allBookings = Array.isArray(data) ? data : data.bookings || []
+      
+      // Debug logging to verify returnStatus
+      console.log('📋 All bookings fetched:', allBookings.length)
+      console.log('🔍 Return statuses:', allBookings.map(b => ({
+        id: b._id,
+        status: b.status,
+        returnStatus: b.returnStatus
+      })))
+      
+      setBookings(allBookings)
     } catch (error) {
       console.error('Failed to fetch bookings:', error)
     } finally {
@@ -44,6 +63,14 @@ export default function HistoryPage() {
     } finally {
       setLoadingPaymentId(null)
     }
+  }
+
+  // Manual refresh button handler
+  const handleRefresh = async () => {
+    console.log('🔄 Manual refresh triggered')
+    setRefreshing(true)
+    await fetchBookings()
+    setRefreshing(false)
   }
 
   const getStatusColor = (status) => {
@@ -109,8 +136,28 @@ export default function HistoryPage() {
   }
 
   // Filter only processed bookings (history)
-  const historyBookings = bookings.filter(b => b.returnStatus === 'processed')
+  // Primary: returnStatus === 'processed'
+  // Fallback: status === 'completed' (for backward compatibility)
+  const historyBookings = bookings.filter(b => {
+    const isProcessed = b.returnStatus === 'processed';
+    const isCompleted = b.status?.toLowerCase() === 'completed';
+    return isProcessed || isCompleted;
+  })
   const completedCount = historyBookings.length
+  
+  // Debug: Log filter results
+  if (!loading && bookings.length > 0) {
+    console.log('📊 History Booking Filter Results:')
+    console.log(`   Total bookings: ${bookings.length}`)
+    console.log(`   History bookings: ${historyBookings.length}`)
+    console.log('   Details:', historyBookings.map(b => ({
+      id: b._id,
+      vehicle: b.vehicle?.name,
+      status: b.status,
+      returnStatus: b.returnStatus,
+      reason: b.returnStatus === 'processed' ? 'returnStatus' : 'status=completed'
+    })))
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 pb-16 px-4">
@@ -120,11 +167,22 @@ export default function HistoryPage() {
 
       <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className="mb-12 mt-8">
-          <h1 className="text-5xl font-bold mb-2">
-            <span className="gradient-text">Booking History</span>
-          </h1>
-          <p className="text-gray-400">View your completed trips and rental history</p>
+        <div className="mb-12 mt-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-5xl font-bold mb-2">
+              <span className="gradient-text">Booking History</span>
+            </h1>
+            <p className="text-gray-400">View your completed trips and rental history</p>
+          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="px-4 py-2 rounded-lg bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 transition flex items-center gap-2 disabled:opacity-50 border border-cyan-500/30"
+            title="Refresh booking data"
+          >
+            <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
         </div>
 
         {/* Summary Cards */}

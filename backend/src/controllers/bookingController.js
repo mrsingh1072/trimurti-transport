@@ -6,7 +6,28 @@ const createBooking = async (req, res) => {
 };
 
 const getMyBookings = async (req, res) => {
-  const bookings = await bookingService.getUserBookings(req.user._id);
+  let bookings = await bookingService.getUserBookings(req.user._id);
+  
+  // FALLBACK: Handle old bookings that don't have returnStatus properly set
+  // For backward compatibility with existing data
+  bookings = bookings.map(booking => {
+    // If returnStatus is not set, infer from status
+    if (!booking.returnStatus || booking.returnStatus === 'none') {
+      if (booking.status === 'completed') {
+        booking.returnStatus = 'processed';
+      } else if (booking.status === 'ongoing' || booking.status === 'confirmed') {
+        booking.returnStatus = 'none';
+      }
+    }
+    return booking;
+  });
+  
+  console.log(`📋 Returning ${bookings.length} bookings for user ${req.user._id}`);
+  console.log('🔍 Return status breakdown:', bookings.reduce((acc, b) => {
+    acc[b.returnStatus] = (acc[b.returnStatus] || 0) + 1;
+    return acc;
+  }, {}));
+  
   res.json({ bookings });
 };
 

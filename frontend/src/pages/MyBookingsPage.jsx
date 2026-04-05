@@ -41,7 +41,17 @@ export default function MyBookingsPage() {
     setLoading(true)
     try {
       const data = await getUserBookings()
-      setBookings(Array.isArray(data) ? data : data.bookings || [])
+      const allBookings = Array.isArray(data) ? data : data.bookings || []
+      
+      // Debug logging to verify returnStatus
+      console.log('📋 Bookings loaded:', allBookings.length)
+      console.log('🔍 Booking statuses:', allBookings.map(b => ({
+        id: b._id,
+        status: b.status,
+        returnStatus: b.returnStatus
+      })))
+      
+      setBookings(allBookings)
     } catch (error) {
       console.error('Failed to fetch bookings:', error)
     } finally {
@@ -296,9 +306,23 @@ export default function MyBookingsPage() {
   }
 
   // Booking Separation
-  const activeBookings = bookings.filter(b => b.returnStatus !== 'processed')
-  const historyBookings = bookings.filter(b => b.returnStatus === 'processed')
+  // Active: NOT completed/processed
+  const activeBookings = bookings.filter(b => b.returnStatus !== 'processed' && b.status?.toLowerCase() !== 'completed')
+  // History: returnStatus === 'processed' OR status === 'completed' (fallback for old data)
+  const historyBookings = bookings.filter(b => {
+    const isProcessed = b.returnStatus === 'processed';
+    const isCompleted = b.status?.toLowerCase() === 'completed';
+    return isProcessed || isCompleted;
+  })
   const displayedBookings = activeTab === 'active' ? activeBookings : historyBookings
+  
+  // Debug: Log filter results when data changes
+  if (!loading && bookings.length > 0) {
+    console.log('📊 MyBookings - Booking Separation:')
+    console.log(`   Total: ${bookings.length}`)
+    console.log(`   Active: ${activeBookings.length}`)
+    console.log(`   History: ${historyBookings.length}`)
+  }
 
   // Calculate stats
   const activeCount = activeBookings.length
