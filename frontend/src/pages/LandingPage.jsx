@@ -84,7 +84,7 @@ export default function LandingPage() {
           <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight text-white">
             <span className="gradient-text">Rent Any Vehicle</span>
             {' '}<br />
-            RAnytime, Anywhere
+            Anytime, Anywhere
           </h1>
 
           {/* Subtext */}
