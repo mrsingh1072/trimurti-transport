@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Calendar, Truck, X, Edit2, Loader, AlertCircle, CreditCard, FileText, MapPin, Clock, TrendingUp, RotateCcw, FileCheck } from 'lucide-react'
+import { Calendar, Truck, X, Edit2, Loader, AlertCircle, CreditCard, FileText, MapPin, Clock, TrendingUp, RotateCcw, FileCheck, CheckCircle } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
 import EditBookingModal from '../components/EditBookingModal'
 import PaymentCheckoutModal from '../components/PaymentCheckoutModal'
@@ -29,6 +29,7 @@ export default function MyBookingsPage() {
   const [showWaiverModal, setShowWaiverModal] = useState(false)
   const [finePaymentBooking, setFinePaymentBooking] = useState(null)
   const [payingFineId, setPayingFineId] = useState(null)
+  const [activeTab, setActiveTab] = useState('active')
 
   useEffect(() => {
     fetchBookings()
@@ -262,9 +263,44 @@ export default function MyBookingsPage() {
     return booking.paymentStatus === 'pending' && ['confirmed', 'ongoing'].includes(booking.status?.toLowerCase())
   }
 
+  // Penalty Management Functions
+  const calculatePenaltyAmount = (booking) => {
+    return (booking.lateFee || 0) + (booking.damageFee || 0)
+  }
+
+  const isPenaltyWaived = (booking) => {
+    return booking.waiverApproved === true
+  }
+
+  const canPayFine = (booking) => {
+    const penaltyAmount = calculatePenaltyAmount(booking)
+    const isWaived = isPenaltyWaived(booking)
+    const isPaid = booking.isFinePaid === true
+    
+    // Show ONLY if: penalty exists AND not paid AND not waived
+    return penaltyAmount > 0 && !isPaid && !isWaived
+  }
+
+  const calculateFinalAmount = (booking) => {
+    let amount = booking.totalPrice || 0
+    const penaltyAmount = calculatePenaltyAmount(booking)
+    
+    // Add penalty only if not waived
+    if (penaltyAmount > 0 && !isPenaltyWaived(booking)) {
+      amount += penaltyAmount
+    }
+    
+    return amount
+  }
+
+  // Booking Separation
+  const activeBookings = bookings.filter(b => b.returnStatus !== 'processed')
+  const historyBookings = bookings.filter(b => b.returnStatus === 'processed')
+  const displayedBookings = activeTab === 'active' ? activeBookings : historyBookings
+
   // Calculate stats
-  const activeCount = bookings.filter(b => ['confirmed', 'ongoing'].includes(b.status?.toLowerCase())).length
-  const completedCount = bookings.filter(b => b.status?.toLowerCase() === 'completed').length
+  const activeCount = activeBookings.length
+  const completedCount = historyBookings.length
   const totalSpent = bookings.reduce((sum, b) => sum + (b.totalPrice || 0), 0)
 
   return (
@@ -338,210 +374,285 @@ export default function MyBookingsPage() {
         ) : (
           <>
             {bookings.length > 0 ? (
-              <div className="space-y-6">
-                {bookings.map(booking => {
-                  const duration = Math.ceil((new Date(booking.endDate) - new Date(booking.startDate)) / (1000 * 60 * 60 * 24))
-                  const returnStatusLabel = booking.returnStatus ? getReturnStatusLabel(booking.returnStatus) : null
-                  
-                  return (
-                    <GlassCard key={booking._id} className="p-6 hover:border-cyan-500/50 transition" glow>
-                      <div className="flex flex-col lg:flex-row gap-8">
-                        {/* Vehicle Info */}
-                        <div className="flex-1">
-                          <div className="flex items-start gap-4 mb-6">
-                            <div className="p-3 rounded-lg bg-gradient-to-br from-cyan-500/20 to-blue-500/20">
-                              <Truck size={28} className="text-cyan-400" />
-                            </div>
+              <>
+                {/* Tab Navigation */}
+                <div className="flex gap-4 mb-8 border-b border-white/10 pb-4">
+                  <button
+                    onClick={() => setActiveTab('active')}
+                    className={`px-6 py-2 font-semibold rounded-lg transition ${
+                      activeTab === 'active'
+                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                        : 'text-gray-400 hover:text-gray-300'
+                    }`}
+                  >
+                    Active Bookings ({activeBookings.length})
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('history')}
+                    className={`px-6 py-2 font-semibold rounded-lg transition ${
+                      activeTab === 'history'
+                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                        : 'text-gray-400 hover:text-gray-300'
+                    }`}
+                  >
+                    History ({historyBookings.length})
+                  </button>
+                </div>
+
+                {/* Bookings Grid */}
+                {displayedBookings.length > 0 ? (
+                  <div className="space-y-6">
+                    {displayedBookings.map(booking => {
+                      const duration = Math.ceil((new Date(booking.endDate) - new Date(booking.startDate)) / (1000 * 60 * 60 * 24))
+                      const returnStatusLabel = booking.returnStatus ? getReturnStatusLabel(booking.returnStatus) : null
+                      const penaltyAmount = calculatePenaltyAmount(booking)
+                      const isWaived = isPenaltyWaived(booking)
+                      const finalAmount = calculateFinalAmount(booking)
+                      const isHistoryView = activeTab === 'history'
+                      
+                      return (
+                        <GlassCard key={booking._id} className="p-6 hover:border-cyan-500/50 transition" glow>
+                          <div className="flex flex-col lg:flex-row gap-8">
+                            {/* Vehicle Info */}
                             <div className="flex-1">
-                              <h3 className="text-2xl font-bold text-white">{booking.vehicle?.name || 'Vehicle'}</h3>
-                              <p className="text-gray-400 text-sm">{booking.vehicle?.category || 'N/A'}</p>
-                            </div>
-                          </div>
+                              <div className="flex items-start gap-4 mb-6">
+                                <div className="p-3 rounded-lg bg-gradient-to-br from-cyan-500/20 to-blue-500/20">
+                                  <Truck size={28} className="text-cyan-400" />
+                                </div>
+                                <div className="flex-1">
+                                  <h3 className="text-2xl font-bold text-white">{booking.vehicle?.name || 'Vehicle'}</h3>
+                                  <p className="text-gray-400 text-sm">{booking.vehicle?.category || 'N/A'}</p>
+                                </div>
+                              </div>
 
-                          {/* Booking Details Grid */}
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 py-4 border-y border-white/10">
-                            <div>
-                              <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Pick-up</p>
-                              <p className="text-white font-semibold">{new Date(booking.startDate).toLocaleDateString()}</p>
-                              <p className="text-gray-500 text-xs">{new Date(booking.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
-                            </div>
-                            <div>
-                              <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Drop-off</p>
-                              <p className="text-white font-semibold">{new Date(booking.endDate).toLocaleDateString()}</p>
-                              <p className="text-gray-500 text-xs">{new Date(booking.endDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
-                            </div>
-                            <div>
-                              <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Duration</p>
-                              <p className="text-white font-semibold">{duration} day{duration !== 1 ? 's' : ''}</p>
-                              <p className="text-gray-500 text-xs text-center"># of days</p>
-                            </div>
-                          </div>
+                              {/* Booking Details Grid */}
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 py-4 border-y border-white/10">
+                                <div>
+                                  <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Pick-up</p>
+                                  <p className="text-white font-semibold">{new Date(booking.startDate).toLocaleDateString()}</p>
+                                  <p className="text-gray-500 text-xs">{new Date(booking.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Drop-off</p>
+                                  <p className="text-white font-semibold">{new Date(booking.endDate).toLocaleDateString()}</p>
+                                  <p className="text-gray-500 text-xs">{new Date(booking.endDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Duration</p>
+                                  <p className="text-white font-semibold">{duration} day{duration !== 1 ? 's' : ''}</p>
+                                  <p className="text-gray-500 text-xs text-center"># of days</p>
+                                </div>
+                              </div>
 
-                          {/* Pricing */}
-                          <div className="mt-4 pt-4 border-t border-white/10">
-                            <div className="flex items-center justify-between">
-                              <span className="text-gray-400">Price per day</span>
-                              <span className="text-white">₹{booking.vehicle?.pricePerDay?.toLocaleString() || 'N/A'}</span>
-                            </div>
-                            <div className="flex items-center justify-between mt-2">
-                              <span className="text-cyan-300 font-semibold">Total Amount</span>
-                              <span className="text-cyan-300 font-bold text-xl">₹{booking.totalPrice?.toLocaleString() || 0}</span>
-                            </div>
-                          </div>
+                              {/* Pricing */}
+                              <div className="mt-4 pt-4 border-t border-white/10">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-gray-400">Price per day</span>
+                                  <span className="text-white">₹{booking.vehicle?.pricePerDay?.toLocaleString() || 'N/A'}</span>
+                                </div>
+                                <div className="flex items-center justify-between mt-2">
+                                  <span className="text-cyan-300 font-semibold">Total Amount</span>
+                                  <span className="text-cyan-300 font-bold text-xl">₹{booking.totalPrice?.toLocaleString() || 0}</span>
+                                </div>
+                              </div>
 
-                          {/* Additional Fees */}
-                          {(booking.lateFee || booking.damageFee || booking.finalAmount || booking.waiverApproved) && (
-                            <div className="mt-4 pt-4 border-t border-white/10 text-sm space-y-2">
-                              {booking.lateFee > 0 && (
-                                <div className="flex justify-between text-orange-400">
-                                  <span>Late Fee</span>
-                                  <span>+₹{booking.lateFee.toLocaleString()}</span>
+                              {/* Penalties & Fees Section */}
+                              {(penaltyAmount > 0 || booking.waiverApproved) && (
+                                <div className="mt-4 pt-4 border-t border-white/10 text-sm space-y-2">
+                                  {booking.lateFee > 0 && (
+                                    <div className="flex justify-between text-orange-400">
+                                      <span>Late Fee</span>
+                                      <span>+₹{booking.lateFee.toLocaleString()}</span>
+                                    </div>
+                                  )}
+                                  {booking.damageFee > 0 && (
+                                    <div className="flex justify-between text-red-400">
+                                      <span>Damage Fee</span>
+                                      <span>+₹{booking.damageFee.toLocaleString()}</span>
+                                    </div>
+                                  )}
+                                  {isWaived && (
+                                    <div className="flex justify-between text-green-400 font-semibold py-2 px-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                                      <span>✓ Penalty Waived</span>
+                                      <span>-₹{penaltyAmount.toLocaleString()}</span>
+                                    </div>
+                                  )}
+                                  <div className="flex justify-between text-white font-bold pt-2 border-t border-white/10">
+                                    <span>Final Amount</span>
+                                    <span className={isWaived ? 'text-green-400' : 'text-cyan-300'}>₹{finalAmount.toLocaleString()}</span>
+                                  </div>
                                 </div>
                               )}
-                              {booking.damageFee > 0 && (
-                                <div className="flex justify-between text-red-400">
-                                  <span>Damage Fee</span>
-                                  <span>+₹{booking.damageFee.toLocaleString()}</span>
-                                </div>
-                              )}
-                              {booking.waiverApproved && (
-                                <div className="flex justify-between text-green-400">
-                                  <span>✓ Waiver Approved</span>
-                                  <span>Penalties Waived</span>
-                                </div>
-                              )}
-                              {booking.finalAmount && (
-                                <div className="flex justify-between text-white font-bold pt-2 border-t border-white/10">
-                                  <span>Final Amount</span>
-                                  <span>₹{booking.finalAmount.toLocaleString()}</span>
-                                </div>
-                              )}
                             </div>
-                          )}
-                        </div>
 
-                        {/* Status & Actions */}
-                        <div className="lg:w-48 flex flex-col gap-4">
-                          {/* Status Badges */}
-                          <div className="space-y-2">
-                            <span className={`inline-block text-xs px-4 py-2 rounded-full font-semibold border ${getStatusColor(booking.status)}`}>
-                              {booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1)}
-                            </span>
-                            <span className={`inline-block text-xs px-4 py-2 rounded-full font-semibold border ${getPaymentStatusColor(booking.paymentStatus)}`}>
-                              {getPaymentStatusLabel(booking.paymentStatus)}
-                            </span>
-                            {returnStatusLabel && (
-                              <span className="inline-block text-xs px-4 py-2 rounded-full font-semibold border bg-blue-500/20 text-blue-300 border-blue-500/30">
-                                {returnStatusLabel}
-                              </span>
-                            )}
-                            {booking.waiverRequested && !booking.waiverApproved && (
-                              <span className="inline-block text-xs px-4 py-2 rounded-full font-semibold border bg-purple-500/20 text-purple-300 border-purple-500/30">
-                                ⏳ Waiver Pending
-                              </span>
-                            )}
-                            {booking.isFinePaid && (
-                              <span className="inline-block text-xs px-4 py-2 rounded-full font-semibold border bg-green-500/20 text-green-300 border-green-500/30">
-                                ✓ Fine Paid
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Action Buttons */}
-                          <div className="flex flex-col gap-2 pt-2">
-                            {needsPayment(booking) && (
-                              <button
-                                onClick={() => handlePayNow(booking)}
-                                className="w-full px-4 py-2.5 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:shadow-lg hover:shadow-purple-500/30 transition flex items-center justify-center gap-2 text-sm font-semibold"
-                              >
-                                <CreditCard size={16} />
-                                Pay Now
-                              </button>
-                            )}
-                            {(booking.lateFee > 0 || booking.damageFee > 0) && !booking.isFinePaid && (
-                              <button
-                                onClick={() => handlePayFine(booking)}
-                                disabled={payingFineId === booking._id}
-                                className="w-full px-4 py-2.5 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 text-white hover:shadow-lg hover:shadow-orange-500/30 transition flex items-center justify-center gap-2 text-sm font-semibold disabled:opacity-50"
-                              >
-                                {payingFineId === booking._id ? (
-                                  <Loader size={16} className="animate-spin" />
-                                ) : (
-                                  <CreditCard size={16} />
+                            {/* Status & Actions */}
+                            <div className="lg:w-48 flex flex-col gap-4">
+                              {/* Status Badges */}
+                              <div className="space-y-2">
+                                <span className={`inline-block text-xs px-4 py-2 rounded-full font-semibold border ${getStatusColor(booking.status)}`}>
+                                  {booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1)}
+                                </span>
+                                <span className={`inline-block text-xs px-4 py-2 rounded-full font-semibold border ${getPaymentStatusColor(booking.paymentStatus)}`}>
+                                  {getPaymentStatusLabel(booking.paymentStatus)}
+                                </span>
+                                {returnStatusLabel && (
+                                  <span className="inline-block text-xs px-4 py-2 rounded-full font-semibold border bg-blue-500/20 text-blue-300 border-blue-500/30">
+                                    {returnStatusLabel}
+                                  </span>
                                 )}
-                                Pay Fine
-                              </button>
-                            )}
-                            {booking.paymentStatus === 'paid' && booking.paymentId && (
-                              <button
-                                onClick={() => handleViewPaymentDetails(booking)}
-                                disabled={loadingPaymentId === booking._id}
-                                className="w-full px-4 py-2.5 rounded-lg bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 transition flex items-center justify-center gap-2 text-sm font-semibold disabled:opacity-50 border border-cyan-500/30"
-                              >
-                                {loadingPaymentId === booking._id ? (
-                                  <Loader size={16} className="animate-spin" />
-                                ) : (
-                                  <FileText size={16} />
+                                {booking.waiverRequested && !booking.waiverApproved && (
+                                  <span className="inline-block text-xs px-4 py-2 rounded-full font-semibold border bg-purple-500/20 text-purple-300 border-purple-500/30">
+                                    ⏳ Waiver Pending
+                                  </span>
                                 )}
-                                Receipt
-                              </button>
-                            )}
-                            {booking.returnStatus && booking.returnStatus !== 'none' ? (
-                              <button
-                                disabled
-                                className="w-full px-4 py-2.5 rounded-lg bg-gray-500/20 text-gray-300 cursor-not-allowed flex items-center justify-center gap-2 text-sm font-semibold border border-gray-500/30 opacity-50"
-                              >
-                                <RotateCcw size={16} />
-                                {booking.returnStatus === 'requested' ? 'Return Requested' : 'Return Processed'}
-                              </button>
-                            ) : canRequestReturn(booking) && (
-                              <button
-                                onClick={() => handleRequestReturn(booking)}
-                                className="w-full px-4 py-2.5 rounded-lg bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 transition flex items-center justify-center gap-2 text-sm font-semibold border border-blue-500/30"
-                              >
-                                <RotateCcw size={16} />
-                                Request Return
-                              </button>
-                            )}
-                            {canRequestWaiver(booking) && (
-                              <button
-                                onClick={() => handleRequestWaiver(booking)}
-                                className="w-full px-4 py-2.5 rounded-lg bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 transition flex items-center justify-center gap-2 text-sm font-semibold border border-purple-500/30"
-                              >
-                                <FileCheck size={16} />
-                                Request Waiver
-                              </button>
-                            )}
-                            {canEdit(booking) && (
-                              <button
-                                onClick={() => handleEditBooking(booking)}
-                                className="w-full px-4 py-2.5 rounded-lg bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 transition flex items-center justify-center gap-2 text-sm font-semibold border border-blue-500/30"
-                              >
-                                <Edit2 size={16} />
-                                Edit Dates
-                              </button>
-                            )}
-                            {canCancel(booking) && (
-                              <button
-                                onClick={() => handleCancelBooking(booking._id)}
-                                disabled={cancellingId === booking._id}
-                                className="w-full px-4 py-2.5 rounded-lg bg-red-500/20 text-red-300 hover:bg-red-500/30 transition flex items-center justify-center gap-2 text-sm font-semibold disabled:opacity-50 border border-red-500/30"
-                              >
-                                {cancellingId === booking._id ? (
-                                  <Loader size={16} className="animate-spin" />
-                                ) : (
-                                  <X size={16} />
+                                {isWaived && (
+                                  <span className="inline-block text-xs px-4 py-2 rounded-full font-semibold border bg-green-500/20 text-green-300 border-green-500/30">
+                                    ✓ Penalty Waived
+                                  </span>
                                 )}
-                                Cancel
-                              </button>
-                            )}
+                                {booking.isFinePaid && (
+                                  <span className="inline-block text-xs px-4 py-2 rounded-full font-semibold border bg-green-500/20 text-green-300 border-green-500/30">
+                                    ✓ Fine Paid
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Action Buttons - Context Specific */}
+                              <div className="flex flex-col gap-2 pt-2">
+                                {isHistoryView ? (
+                                  <>
+                                    {/* History View - Show minimal actions */}
+                                    {booking.paymentStatus === 'paid' && booking.paymentId && (
+                                      <button
+                                        onClick={() => handleViewPaymentDetails(booking)}
+                                        disabled={loadingPaymentId === booking._id}
+                                        className="w-full px-4 py-2.5 rounded-lg bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 transition flex items-center justify-center gap-2 text-sm font-semibold disabled:opacity-50 border border-cyan-500/30"
+                                      >
+                                        {loadingPaymentId === booking._id ? (
+                                          <Loader size={16} className="animate-spin" />
+                                        ) : (
+                                          <FileText size={16} />
+                                        )}
+                                        Receipt
+                                      </button>
+                                    )}
+                                    <div className="pt-2 px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm font-semibold text-center flex items-center justify-center gap-2">
+                                      <CheckCircle size={16} />
+                                      Completed
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    {/* Active View - Show all applicable actions */}
+                                    {needsPayment(booking) && (
+                                      <button
+                                        onClick={() => handlePayNow(booking)}
+                                        className="w-full px-4 py-2.5 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:shadow-lg hover:shadow-purple-500/30 transition flex items-center justify-center gap-2 text-sm font-semibold"
+                                      >
+                                        <CreditCard size={16} />
+                                        Pay Now
+                                      </button>
+                                    )}
+                                    {canPayFine(booking) && (
+                                      <button
+                                        onClick={() => handlePayFine(booking)}
+                                        disabled={payingFineId === booking._id}
+                                        className="w-full px-4 py-2.5 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 text-white hover:shadow-lg hover:shadow-orange-500/30 transition flex items-center justify-center gap-2 text-sm font-semibold disabled:opacity-50"
+                                      >
+                                        {payingFineId === booking._id ? (
+                                          <Loader size={16} className="animate-spin" />
+                                        ) : (
+                                          <CreditCard size={16} />
+                                        )}
+                                        Pay Fine
+                                      </button>
+                                    )}
+                                    {booking.paymentStatus === 'paid' && booking.paymentId && (
+                                      <button
+                                        onClick={() => handleViewPaymentDetails(booking)}
+                                        disabled={loadingPaymentId === booking._id}
+                                        className="w-full px-4 py-2.5 rounded-lg bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 transition flex items-center justify-center gap-2 text-sm font-semibold disabled:opacity-50 border border-cyan-500/30"
+                                      >
+                                        {loadingPaymentId === booking._id ? (
+                                          <Loader size={16} className="animate-spin" />
+                                        ) : (
+                                          <FileText size={16} />
+                                        )}
+                                        Receipt
+                                      </button>
+                                    )}
+                                    {booking.returnStatus && booking.returnStatus !== 'none' ? (
+                                      <button
+                                        disabled
+                                        className="w-full px-4 py-2.5 rounded-lg bg-gray-500/20 text-gray-300 cursor-not-allowed flex items-center justify-center gap-2 text-sm font-semibold border border-gray-500/30 opacity-50"
+                                      >
+                                        <RotateCcw size={16} />
+                                        {booking.returnStatus === 'requested' ? 'Return Requested' : 'Return Processed'}
+                                      </button>
+                                    ) : canRequestReturn(booking) && (
+                                      <button
+                                        onClick={() => handleRequestReturn(booking)}
+                                        className="w-full px-4 py-2.5 rounded-lg bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 transition flex items-center justify-center gap-2 text-sm font-semibold border border-blue-500/30"
+                                      >
+                                        <RotateCcw size={16} />
+                                        Request Return
+                                      </button>
+                                    )}
+                                    {canRequestWaiver(booking) && !isWaived && (
+                                      <button
+                                        onClick={() => handleRequestWaiver(booking)}
+                                        className="w-full px-4 py-2.5 rounded-lg bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 transition flex items-center justify-center gap-2 text-sm font-semibold border border-purple-500/30"
+                                      >
+                                        <FileCheck size={16} />
+                                        Request Waiver
+                                      </button>
+                                    )}
+                                    {canEdit(booking) && (
+                                      <button
+                                        onClick={() => handleEditBooking(booking)}
+                                        className="w-full px-4 py-2.5 rounded-lg bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 transition flex items-center justify-center gap-2 text-sm font-semibold border border-blue-500/30"
+                                      >
+                                        <Edit2 size={16} />
+                                        Edit Dates
+                                      </button>
+                                    )}
+                                    {canCancel(booking) && (
+                                      <button
+                                        onClick={() => handleCancelBooking(booking._id)}
+                                        disabled={cancellingId === booking._id}
+                                        className="w-full px-4 py-2.5 rounded-lg bg-red-500/20 text-red-300 hover:bg-red-500/30 transition flex items-center justify-center gap-2 text-sm font-semibold disabled:opacity-50 border border-red-500/30"
+                                      >
+                                        {cancellingId === booking._id ? (
+                                          <Loader size={16} className="animate-spin" />
+                                        ) : (
+                                          <X size={16} />
+                                        )}
+                                        Cancel
+                                      </button>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    </GlassCard>
-                  )
-                })}
-              </div>
+                        </GlassCard>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <GlassCard className="p-12 text-center" glow>
+                    <Calendar size={48} className="mx-auto text-gray-500 mb-4" />
+                    <p className="text-gray-400 text-lg font-semibold">
+                      {activeTab === 'active' ? 'No active bookings' : 'No completed bookings'}
+                    </p>
+                    <p className="text-gray-500 text-sm mt-2">
+                      {activeTab === 'active' 
+                        ? 'Start your journey by booking a vehicle from our fleet' 
+                        : 'Your completed trips will appear here'}
+                    </p>
+                  </GlassCard>
+                )}
+              </>
             ) : (
               <GlassCard className="p-12 text-center" glow>
                 <Calendar size={48} className="mx-auto text-gray-500 mb-4" />
