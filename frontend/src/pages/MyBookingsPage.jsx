@@ -465,8 +465,16 @@ export default function MyBookingsPage() {
                                 </div>
                                 <div>
                                   <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Duration</p>
-                                  <p className="text-white font-semibold">{duration} day{duration !== 1 ? 's' : ''}</p>
-                                  <p className="text-gray-500 text-xs text-center"># of days</p>
+                                  <p className="text-white font-semibold">
+                                    {/* ✨ Enhanced: Display hours or days based on durationType */}
+                                    {booking.durationType === 'hours' 
+                                      ? `${booking.durationValue} hour${booking.durationValue !== 1 ? 's' : ''}`
+                                      : `${booking.durationValue || duration} day${(booking.durationValue || duration) !== 1 ? 's' : ''}`
+                                    }
+                                  </p>
+                                  <p className="text-gray-500 text-xs text-center">
+                                    {booking.durationType === 'hours' ? 'hours' : 'days'}
+                                  </p>
                                 </div>
                               </div>
 

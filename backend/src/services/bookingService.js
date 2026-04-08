@@ -18,7 +18,7 @@ const hasOverlap = async (vehicleId, startDate, endDate) => {
   return !!overlapping;
 };
 
-const createBooking = async (userId, { vehicleId, startDate, endDate }) => {
+const createBooking = async (userId, { vehicleId, startDate, endDate, durationType = 'days', durationValue = null }) => {
   const vehicle = await Vehicle.findById(vehicleId);
   if (!vehicle) {
     const error = new Error('Vehicle not found');
@@ -33,13 +33,85 @@ const createBooking = async (userId, { vehicleId, startDate, endDate }) => {
   }
 
   const start = new Date(startDate);
-  const end = new Date(endDate);
+  let end = new Date(endDate);
+  
+  // VALIDATION: Start date must be before end date
   if (start >= end) {
     const error = new Error('End date must be after start date');
     error.statusCode = 400;
     throw error;
   }
 
+  // VALIDATION: Maximum booking limit (720 hours = 30 days)
+  const MAX_HOURS = 720;
+  let hoursRequested = diffInHours(start, end);
+  if (hoursRequested > MAX_HOURS) {
+    const error = new Error(`Booking duration cannot exceed ${MAX_HOURS} hours (30 days)`);
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // DETERMINE DURATION (support both old and new formats)
+  let finalDurationType = durationType || 'days';
+  let finalDurationValue = durationValue;
+  let totalPrice = 0;
+
+  // If duration parameters provided (NEW FORMAT: hourly or daily)
+  if (durationValue !== null && ['hours', 'days'].includes(durationType)) {
+    // Validate duration value
+    if (durationValue <= 0) {
+      const error = new Error('Duration must be greater than 0');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    finalDurationType = durationType;
+    finalDurationValue = durationValue;
+
+    // AUTO-CONVERSION: 24+ hours → days
+    if (durationType === 'hours' && durationValue >= 24) {
+      const wholeHours = Math.floor(durationValue);
+      const wholeDays = Math.floor(wholeHours / 24);
+      const remainingHours = wholeHours % 24;
+
+      const pricePerHour = vehicle.pricePerDay / 24;
+
+      totalPrice = (wholeDays * vehicle.pricePerDay) + (remainingHours * pricePerHour);
+      
+      // Recalculate end date based on hours
+      end = new Date(start);
+      end.setHours(end.getHours() + durationValue);
+
+      // If >= 24 hours, store as days
+      finalDurationType = 'days';
+      finalDurationValue = wholeDays + (remainingHours > 0 ? (remainingHours / 24) : 0);
+    } else if (durationType === 'hours') {
+      // Less than 24 hours - store as hours
+      const pricePerHour = vehicle.pricePerDay / 24;
+      totalPrice = durationValue * pricePerHour;
+      
+      // Calculate end date based on hours
+      end = new Date(start);
+      end.setHours(end.getHours() + durationValue);
+    } else if (durationType === 'days') {
+      // Daily rental
+      totalPrice = durationValue * vehicle.pricePerDay;
+      
+      // Calculate end date based on days
+      end = new Date(start);
+      end.setDate(end.getDate() + durationValue);
+    }
+  } else {
+    // OLD FORMAT: Using startDate and endDate (backward compatibility)
+    finalDurationType = 'days';
+    finalDurationValue = diffInDays(start, end);
+    totalPrice = calculateBaseRentalCost(vehicle.pricePerDay, start, end);
+  }
+
+  // Ensure price is valid
+  totalPrice = Math.max(totalPrice, 1);
+
+  // CHECK FOR BOOKING CONFLICTS
   const overlap = await hasOverlap(vehicleId, start, end);
   if (overlap) {
     const error = new Error('Vehicle is already booked for the selected dates');
@@ -47,24 +119,25 @@ const createBooking = async (userId, { vehicleId, startDate, endDate }) => {
     throw error;
   }
 
-  const totalPrice = calculateBaseRentalCost(vehicle.pricePerDay, start, end);
-
+  // CREATE BOOKING with all calculated values
   const booking = await Booking.create({
     user: userId,
     vehicle: vehicleId,
     startDate: start,
     endDate: end,
-    totalPrice,
+    totalPrice: Math.round(totalPrice * 100) / 100, // Round to 2 decimal places
     status: BOOKING_STATUS.CONFIRMED,
     pickupDateTime: start,
     dropoffDateTime: end,
-    durationType: 'days',
-    durationValue: diffInDays(start, end),
+    durationType: finalDurationType,
+    durationValue: finalDurationValue,
     returnStatus: RETURN_STATUS.NONE,
   });
 
   vehicle.availability = false;
   await vehicle.save();
+
+  console.log(`✅ Booking created: ${finalDurationValue} ${finalDurationType} @ ₹${booking.totalPrice}`);
 
   return booking;
 };
