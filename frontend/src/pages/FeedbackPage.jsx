@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Star, Send, Loader, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Star, Send, Loader, AlertCircle, CheckCircle, ArrowLeft, ChevronDown } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { submitFeedback, getUserBookings } from '../services/api'
 import { useAuth } from '../context/AuthContext'
@@ -9,9 +9,11 @@ import StarRating from '../components/StarRating'
 export default function FeedbackPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const dropdownRef = useRef(null)
   
   const [bookings, setBookings] = useState([])
   const [selectedBooking, setSelectedBooking] = useState('')
+  const [dropdownOpen, setDropdownOpen] = useState(false)
   const [message, setMessage] = useState('')
   const [rating, setRating] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -23,6 +25,20 @@ export default function FeedbackPage() {
   useEffect(() => {
     fetchCompletedBookings()
   }, [])
+
+  // Handle outside click to close dropdown
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false)
+      }
+    }
+
+    if (dropdownOpen) {
+      document.addEventListener('mousedown', handleOutsideClick)
+      return () => document.removeEventListener('mousedown', handleOutsideClick)
+    }
+  }, [dropdownOpen])
 
   const fetchCompletedBookings = async () => {
     setLoading(true)
@@ -172,6 +188,7 @@ export default function FeedbackPage() {
               onClick={() => {
                 setFeedbackType('booking')
                 setSelectedBooking('')
+                setDropdownOpen(false)
               }}
               className={`flex-1 px-4 py-3 rounded-lg border transition font-medium ${
                 feedbackType === 'booking'
@@ -182,7 +199,10 @@ export default function FeedbackPage() {
               About a Booking
             </button>
             <button
-              onClick={() => setFeedbackType('general')}
+              onClick={() => {
+                setFeedbackType('general')
+                setDropdownOpen(false)
+              }}
               className={`flex-1 px-4 py-3 rounded-lg border transition font-medium ${
                 feedbackType === 'general'
                   ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300'
@@ -195,11 +215,11 @@ export default function FeedbackPage() {
         </Card>
 
         {/* Main Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6 relative">
           {/* Booking Selection (showed only if booking feedback selected) */}
           {feedbackType === 'booking' && (
-            <Card className="p-6" glow>
-              <label className="text-sm font-semibold text-gray-300 block mb-3">
+            <Card className="p-6 glow relative z-20">
+              <label className="text-sm font-semibold text-gray-300 block mb-4">
                 Select a Booking
               </label>
               
@@ -208,18 +228,94 @@ export default function FeedbackPage() {
                   <Loader size={24} className="text-cyan-400 animate-spin" />
                 </div>
               ) : bookings.length > 0 ? (
-                <select
-                  value={selectedBooking}
-                  onChange={(e) => setSelectedBooking(e.target.value)}
-                  className="w-full bg-white/5 border border-cyan-500/30 rounded-lg p-3 text-white focus:outline-none focus:border-cyan-500/60 focus:bg-white/10 transition"
-                >
-                  <option value="">-- Select a completed booking --</option>
-                  {bookings.map(booking => (
-                    <option key={booking._id} value={booking._id}>
-                      {booking.vehicle?.name || 'Vehicle'} • {new Date(booking.startDate).toLocaleDateString()} to {new Date(booking.endDate).toLocaleDateString()}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative z-50" ref={dropdownRef}>
+                  {/* Custom Dropdown Trigger */}
+                  <button
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                    className={`w-full px-4 py-3 rounded-xl border transition duration-200 flex items-center justify-between group ${
+                      dropdownOpen
+                        ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border-cyan-500/60 shadow-lg shadow-cyan-500/20'
+                        : 'bg-white/5 border-cyan-500/30 hover:bg-white/10 hover:border-cyan-500/50'
+                    }`}
+                  >
+                    <div className="flex-1 text-left">
+                      {selectedBooking ? (
+                        (() => {
+                          const booking = bookings.find(b => b._id === selectedBooking)
+                          return booking ? (
+                            <div className="block">
+                              <p className="text-white font-medium text-sm">
+                                {booking.vehicle?.name || 'Vehicle'}
+                              </p>
+                              <p className="text-gray-400 text-xs mt-0.5">
+                                {new Date(booking.startDate).toLocaleDateString()} → {new Date(booking.endDate).toLocaleDateString()}
+                              </p>
+                            </div>
+                          ) : null
+                        })()
+                      ) : (
+                        <p className="text-gray-500 text-sm">Select a completed booking</p>
+                      )}
+                    </div>
+                    <ChevronDown
+                      size={20}
+                      className={`text-cyan-400 transition duration-300 flex-shrink-0 ml-2 ${
+                        dropdownOpen ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {dropdownOpen && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-gradient-to-b from-gray-900 to-gray-950 border border-cyan-500/40 rounded-xl shadow-2xl shadow-cyan-500/10 z-[1000] max-h-80 overflow-y-auto scrollbar-thin scrollbar-track-gray-900 scrollbar-thumb-cyan-500/30">
+                      {bookings.map((booking, index) => (
+                        <button
+                          key={booking._id}
+                          onClick={() => {
+                            setSelectedBooking(booking._id)
+                            setDropdownOpen(false)
+                          }}
+                          className={`w-full px-4 py-3 text-left transition duration-150 border-b border-cyan-500/10 hover:bg-cyan-500/15 flex items-start gap-3 group ${
+                            selectedBooking === booking._id
+                              ? 'bg-cyan-500/20'
+                              : 'hover:bg-white/5'
+                          } ${index === bookings.length - 1 ? 'border-b-0' : ''}`}
+                        >
+                          {/* Option Indicator */}
+                          <div className="flex-shrink-0 w-4 h-4 rounded border-2 border-cyan-400/40 mt-1 group-hover:border-cyan-400/80 transition flex items-center justify-center">
+                            {selectedBooking === booking._id && (
+                              <div className="w-2 h-2 rounded-full bg-cyan-400"></div>
+                            )}
+                          </div>
+
+                          {/* Option Content */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white font-semibold text-sm truncate">
+                              {booking.vehicle?.name || 'Vehicle'}
+                            </p>
+                            <p className="text-gray-400 text-xs mt-1 flex flex-wrap gap-1">
+                              <span>{new Date(booking.startDate).toLocaleDateString()}</span>
+                              <span>→</span>
+                              <span>{new Date(booking.endDate).toLocaleDateString()}</span>
+                            </p>
+                            {booking.vehicle?.category && (
+                              <p className="text-gray-500 text-xs mt-1">
+                                {booking.vehicle.category}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Category Badge */}
+                          <div className="flex-shrink-0">
+                            <span className="inline-block px-2 py-1 bg-cyan-500/20 border border-cyan-500/30 rounded text-cyan-300 text-xs font-medium">
+                              Completed
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ) : (
                 <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-4 text-yellow-300 text-sm">
                   <p>You don't have any completed bookings yet.</p>
@@ -236,7 +332,7 @@ export default function FeedbackPage() {
           )}
 
           {/* Star Rating */}
-          <Card className="p-6" glow>
+          <Card className="p-6 glow relative z-0">
             <p className="text-sm font-semibold text-gray-300 mb-4">Rate Your Experience</p>
             <div className="flex items-center gap-6">
               <StarRating 
@@ -258,7 +354,7 @@ export default function FeedbackPage() {
           </Card>
 
           {/* Message Input */}
-          <Card className="p-6" glow>
+          <Card className="p-6 glow relative z-0">
             <label className="text-sm font-semibold text-gray-300 block mb-3">
               Your Feedback (10+ characters)
             </label>
