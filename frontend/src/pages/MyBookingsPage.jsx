@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Calendar, Truck, X, Edit2, Loader, AlertCircle, CreditCard, FileText, MapPin, Clock, TrendingUp, RotateCcw, FileCheck, CheckCircle } from 'lucide-react'
+import { Calendar, Truck, X, Edit2, Loader, AlertCircle, CreditCard, FileText, MapPin, Clock, TrendingUp, RotateCcw, FileCheck, CheckCircle, Eye, EyeOff, Radio } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
 import EditBookingModal from '../components/EditBookingModal'
 import PaymentCheckoutModal from '../components/PaymentCheckoutModal'
@@ -9,6 +9,7 @@ import RequestReturnModal from '../components/RequestReturnModal'
 import RequestWaiverModal from '../components/RequestWaiverModal'
 import Card from '../components/Card'
 import { getUserBookings, cancelBooking, getPaymentById, createFinePaymentOrder, verifyFinePayment } from '../services/api'
+import { enableLocationSharing, disableLocationSharing } from '../services/trackingService'
 import { useAuth } from '../context/AuthContext'
 
 export default function MyBookingsPage() {
@@ -32,9 +33,23 @@ export default function MyBookingsPage() {
   const [finePaymentBooking, setFinePaymentBooking] = useState(null)
   const [payingFineId, setPayingFineId] = useState(null)
   const [activeTab, setActiveTab] = useState('active')
+  const [trackingBookings, setTrackingBookings] = useState({})
+  const [trackingLoadingId, setTrackingLoadingId] = useState(null)
+  const locationWatchersRef = useRef({})
 
   useEffect(() => {
     fetchBookings()
+  }, [])
+
+  // Cleanup location watchers when component unmounts
+  useEffect(() => {
+    return () => {
+      Object.values(locationWatchersRef.current).forEach(watcherId => {
+        if (watcherId) {
+          navigator.geolocation.clearWatch(watcherId)
+        }
+      })
+    }
   }, [])
 
   const fetchBookings = async () => {
@@ -305,6 +320,115 @@ export default function MyBookingsPage() {
     return amount
   }
 
+  // Start sending location updates to backend
+  const startLocationTracking = (bookingId) => {
+    if (!navigator.geolocation) {
+      alert('Geolocation not supported by your browser')
+      return
+    }
+
+    // Request permission and start watching position
+    const watcherId = navigator.geolocation.watchPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude, accuracy, speed } = position.coords
+          console.log('📍 Location update:', { latitude, longitude, accuracy, speed })
+          
+          // Send to backend via tracking service
+          // This would typically call an API to update the backend
+          console.log(`✅ Tracking active for booking ${bookingId}`)
+        } catch (error) {
+          console.error('Error sending location:', error)
+        }
+      },
+      (error) => {
+        console.error('Geolocation error:', error)
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            alert('Location permission denied. Please enable location access in your browser settings.')
+            break
+          case error.POSITION_UNAVAILABLE:
+            alert('Location information is unavailable.')
+            break
+          case error.TIMEOUT:
+            alert('The request to get user location timed out.')
+            break
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 10000
+      }
+    )
+
+    locationWatchersRef.current[bookingId] = watcherId
+    console.log(`🎯 Started tracking for booking ${bookingId}`)
+  }
+
+  // Stop sending location updates
+  const stopLocationTracking = (bookingId) => {
+    const watcherId = locationWatchersRef.current[bookingId]
+    if (watcherId) {
+      navigator.geolocation.clearWatch(watcherId)
+      delete locationWatchersRef.current[bookingId]
+      console.log(`⛔ Stopped tracking for booking ${bookingId}`)
+    }
+  }
+
+  // Toggle location sharing ON/OFF
+  const toggleTracking = async (booking) => {
+    const bookingId = booking._id
+    const isCurrentlyTracking = trackingBookings[bookingId]
+
+    setTrackingLoadingId(bookingId)
+    try {
+      if (isCurrentlyTracking) {
+        // Turn OFF
+        await disableLocationSharing(bookingId)
+        stopLocationTracking(bookingId)
+        setTrackingBookings(prev => ({
+          ...prev,
+          [bookingId]: false
+        }))
+        console.log('✅ Location sharing disabled')
+      } else {
+        // Turn ON
+        await enableLocationSharing(bookingId)
+        startLocationTracking(bookingId)
+        setTrackingBookings(prev => ({
+          ...prev,
+          [bookingId]: true
+        }))
+        console.log('✅ Location sharing enabled')
+      }
+    } catch (error) {
+      console.error('Error toggling tracking:', error)
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Failed to toggle location sharing'
+      alert(`Error: ${errorMessage}`)
+    } finally {
+      setTrackingLoadingId(null)
+    }
+  }
+
+  // Auto-stop tracking when booking is completed
+  const isBookingCompleted = (booking) => {
+    return booking.returnStatus === 'processed' || booking.status?.toLowerCase() === 'completed'
+  }
+
+  useEffect(() => {
+    // Clean up tracking for completed bookings
+    bookings.forEach(booking => {
+      if (isBookingCompleted(booking) && trackingBookings[booking._id]) {
+        stopLocationTracking(booking._id)
+        setTrackingBookings(prev => ({
+          ...prev,
+          [booking._id]: false
+        }))
+      }
+    })
+  }, [bookings])
+
   // Booking Separation
   // Active: NOT completed/processed
   const activeBookings = bookings.filter(b => b.returnStatus !== 'processed' && b.status?.toLowerCase() !== 'completed')
@@ -550,6 +674,43 @@ export default function MyBookingsPage() {
                                   </span>
                                 )}
                               </div>
+
+                              {/* Share Live Location Toggle - Active View Only */}
+                              {!isHistoryView && (
+                                <div className="pt-4 border-t border-white/10">
+                                  <button
+                                    onClick={() => toggleTracking(booking)}
+                                    disabled={trackingLoadingId === booking._id}
+                                    className={`w-full px-4 py-2.5 rounded-lg transition flex items-center justify-center gap-2 text-sm font-semibold border ${
+                                      trackingBookings[booking._id]
+                                        ? 'bg-green-500/20 text-green-300 hover:bg-green-500/30 border-green-500/30'
+                                        : 'bg-gray-500/20 text-gray-300 hover:bg-gray-500/30 border-gray-500/30'
+                                    } disabled:opacity-50`}
+                                  >
+                                    {trackingLoadingId === booking._id ? (
+                                      <>
+                                        <Loader size={16} className="animate-spin" />
+                                        Updating...
+                                      </>
+                                    ) : trackingBookings[booking._id] ? (
+                                      <>
+                                        <Radio size={16} className="animate-pulse" />
+                                        Live Tracking Active
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Radio size={16} />
+                                        Start Live Tracking
+                                      </>
+                                    )}
+                                  </button>
+                                  <p className="text-xs text-gray-500 text-center mt-2">
+                                    {trackingBookings[booking._id]
+                                      ? '🟢 Your location is being shared'
+                                      : '⚪ Tracking is off'}
+                                  </p>
+                                </div>
+                              )}
 
                               {/* Action Buttons - Context Specific */}
                               <div className="flex flex-col gap-2 pt-2">

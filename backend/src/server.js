@@ -1,6 +1,7 @@
 require('dotenv').config();
 require('express-async-errors');
 
+const http = require('http');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -12,6 +13,7 @@ const { connectDB } = require('./config/db');
 const routes = require('./routes');
 const { notFoundHandler, errorHandler } = require('./middleware/errorMiddleware');
 const { setupSwagger } = require('./config/swagger');
+const { initializeSocket } = require('./config/socket');
 
 // Verify environment variables are loaded
 console.log('\n🔧 [SERVER] Environment Configuration:');
@@ -53,10 +55,20 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
+// Create HTTP server for Socket.IO
+const httpServer = http.createServer(app);
+
+// Initialize Socket.IO
+const io = initializeSocket(httpServer);
+
+// Global io instance for use in other modules
+global.io = io;
+
 if (process.env.NODE_ENV !== 'test') {
   connectDB().then(() => {
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+    httpServer.listen(PORT, () => {
+      console.log(`\n🚀 Server running on port ${PORT}`);
+      console.log(`📡 Socket.IO ready for real-time tracking`);
     });
   });
 }

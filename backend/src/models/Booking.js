@@ -112,6 +112,25 @@ const bookingSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    // 📍 Live tracking location (updated in real-time)
+    currentLocation: {
+      latitude: {
+        type: Number,
+        default: null,
+      },
+      longitude: {
+        type: Number,
+        default: null,
+      },
+      updatedAt: {
+        type: Date,
+        default: null,
+      },
+    },
+    isTracking: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

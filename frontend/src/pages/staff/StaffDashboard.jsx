@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BarChart3, BookOpen, Truck, TrendingUp, RotateCcw, TrendingDown, FileCheck, AlertCircle, Loader, ChevronDown, ChevronUp } from 'lucide-react'
+import { BarChart3, BookOpen, Truck, TrendingUp, RotateCcw, TrendingDown, FileCheck, AlertCircle, Loader, ChevronDown, ChevronUp, MapPin, Clock } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import StaffLayout from '../../components/StaffLayout'
 import { 
@@ -11,6 +11,7 @@ import {
   processReturn,
   updatePenalty,
   handleWaiver,
+  getLiveTracking,
 } from '../../services/api'
 import Card from '../../components/Card'
 import GlassCard from '../../components/GlassCard'
@@ -36,6 +37,10 @@ export default function StaffDashboard() {
   const [pendingWaiversList, setPendingWaiversList] = useState([])
   const [expandedId, setExpandedId] = useState(null)
   const [processingId, setProcessingId] = useState(null)
+
+  // 📍 Live tracking state
+  const [liveVehicles, setLiveVehicles] = useState([])
+  const [liveTrackingLoading, setLiveTrackingLoading] = useState(false)
 
   // Form states
   const [returnForm, setReturnForm] = useState({})
@@ -89,6 +94,28 @@ export default function StaffDashboard() {
     } finally {
       setLoading(false)
     }
+
+    // 📍 Fetch live tracking data and set up polling
+    const fetchLiveTracking = async () => {
+      try {
+        setLiveTrackingLoading(true)
+        const liveData = await getLiveTracking()
+        setLiveVehicles(Array.isArray(liveData) ? liveData : [])
+      } catch (err) {
+        console.error('Error fetching live tracking:', err)
+      } finally {
+        setLiveTrackingLoading(false)
+      }
+    }
+
+    // Fetch immediately
+    fetchLiveTracking()
+
+    // Set up polling interval (5 seconds)
+    const liveTrackingInterval = setInterval(fetchLiveTracking, 5000)
+
+    // Cleanup interval on unmount
+    return () => clearInterval(liveTrackingInterval)
   }
 
   const handleProcessReturn = async (bookingId) => {
@@ -524,6 +551,110 @@ export default function StaffDashboard() {
               <GlassCard className="p-12 text-center">
                 <FileCheck size={48} className="mx-auto text-gray-500 mb-4" />
                 <p className="text-gray-400">No waiver requests</p>
+              </GlassCard>
+            )}
+          </div>
+        )}
+
+        {/* 📍 Live Vehicle Tracking */}
+        {activeTab === 'overview' && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-red-500" />
+                Live Vehicle Tracking
+              </h3>
+              <span className="text-sm text-gray-400">
+                {liveVehicles.length} vehicle{liveVehicles.length !== 1 ? 's' : ''} active
+              </span>
+            </div>
+
+            {liveTrackingLoading && liveVehicles.length === 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="bg-gray-800/30 border border-gray-700 rounded-lg p-4 animate-pulse">
+                    <div className="h-4 bg-gray-700 rounded w-32 mb-3" />
+                    <div className="h-3 bg-gray-700 rounded w-24" />
+                  </div>
+                ))}
+              </div>
+            ) : liveVehicles.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {liveVehicles.map((vehicle) => {
+                  const isWaitingForLocation = vehicle.currentLocation?.status === 'pending' || !vehicle.currentLocation?.latitude
+
+                  return (
+                    <div
+                      key={vehicle.bookingId}
+                      className={`rounded-lg p-4 transition-all ${
+                        isWaitingForLocation
+                          ? 'bg-gradient-to-br from-yellow-800/40 to-yellow-800/10 border border-yellow-700/50'
+                          : 'bg-gradient-to-br from-gray-800/60 to-gray-800/30 border border-gray-700 hover:border-green-500/50'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className={`w-2 h-2 rounded-full ${
+                              isWaitingForLocation 
+                                ? 'bg-yellow-500 animate-pulse' 
+                                : 'bg-green-500 animate-pulse'
+                            }`} />
+                            <h4 className="font-semibold text-white truncate">{vehicle.vehicleName}</h4>
+                          </div>
+                          <p className="text-xs text-gray-400">{vehicle.registrationNumber}</p>
+                        </div>
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          isWaitingForLocation
+                            ? 'bg-yellow-500/20 text-yellow-400'
+                            : 'bg-green-500/20 text-green-400'
+                        }`}>
+                          {isWaitingForLocation ? 'Waiting...' : 'Active'}
+                        </span>
+                      </div>
+
+                      <div className="space-y-2 text-sm">
+                        <div>
+                          <p className="text-gray-400">Customer</p>
+                          <p className="text-white font-medium">{vehicle.customerName}</p>
+                        </div>
+
+                        <div>
+                          <p className="text-gray-400 flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            Location
+                          </p>
+                          {isWaitingForLocation ? (
+                            <p className="text-yellow-400 font-medium text-xs">
+                              📍 Waiting for first location update...
+                            </p>
+                          ) : (
+                            <p className="text-white font-mono text-xs">
+                              {vehicle.currentLocation?.latitude?.toFixed(6)}, {vehicle.currentLocation?.longitude?.toFixed(6)}
+                            </p>
+                          )}
+                        </div>
+
+                        <div>
+                          <p className="text-gray-400 flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            Last Update
+                          </p>
+                          <p className="text-white text-xs">
+                            {vehicle.currentLocation?.updatedAt
+                              ? new Date(vehicle.currentLocation.updatedAt).toLocaleTimeString()
+                              : 'Pending...'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <GlassCard className="p-8 text-center">
+                <MapPin className="w-12 h-12 text-gray-600 mx-auto mb-3 opacity-50" />
+                <p className="text-gray-400">No active vehicle tracking at the moment</p>
               </GlassCard>
             )}
           </div>

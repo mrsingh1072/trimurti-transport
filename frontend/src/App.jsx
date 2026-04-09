@@ -32,6 +32,7 @@ import MyBookingsPage from './pages/MyBookingsPage'
 import HistoryPage from './pages/HistoryPage'
 import FeedbackPage from './pages/FeedbackPage'
 import ProfilePage from './pages/ProfilePage'
+import TripTrackingPage from './pages/TripTrackingPage'
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard'
@@ -44,6 +45,7 @@ import AdminSettingsPage from './pages/admin/SettingsPage'
 import StaffApprovalPage from './pages/admin/StaffApprovalPage'
 import AdminWaiverManagement from './pages/admin/WaiverManagement'
 import AdminFeedbackPage from './pages/admin/FeedbackPage'
+import LiveTrackingPage from './pages/admin/LiveTrackingPage'
 
 export default function App() {
   return (
@@ -138,6 +140,19 @@ export default function App() {
                 <div className="min-h-screen bg-gray-950 pt-20">
                   <Navbar />
                   <DashboardPage />
+                </div>
+              </CustomerRoute>
+            }
+          />
+
+          {/* Trip Tracking Page */}
+          <Route
+            path="/trip-tracking/:bookingId"
+            element={
+              <CustomerRoute>
+                <div className="min-h-screen bg-gray-950 pt-20">
+                  <Navbar />
+                  <TripTrackingPage />
                 </div>
               </CustomerRoute>
             }
@@ -288,6 +303,22 @@ export default function App() {
               <AdminRoute>
                 <AdminFeedbackPage />
               </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/live-tracking"
+            element={
+              <AdminRoute>
+                <LiveTrackingPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/staff/live-tracking"
+            element={
+              <StaffRoute>
+                <LiveTrackingPage />
+              </StaffRoute>
             }
           />
 

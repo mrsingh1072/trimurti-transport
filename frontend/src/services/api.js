@@ -821,4 +821,21 @@ export const getAverageRating = async () => {
   }
 }
 
+// 📍 Get live tracking data for dashboard (Admin/Staff only)
+export const getLiveTracking = async () => {
+  try {
+    console.log('📍 [GET LIVE TRACKING] Fetching active vehicles with locations...')
+    const response = await apiClient.get('/tracking/live')
+    console.log(`✅ [GET LIVE TRACKING] Retrieved ${response.data.count || 0} active vehicles`)
+    return response.data.data || []
+  } catch (error) {
+    console.error('❌ [GET LIVE TRACKING] Error:', {
+      status: error.response?.status,
+      message: error.response?.data?.message || error.message
+    })
+    // Return empty array instead of throwing to allow graceful fallback
+    return []
+  }
+}
+
 export default apiClient
