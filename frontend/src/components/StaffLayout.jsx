@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Menu, X, BarChart3, BookOpen, Truck, RefreshCw, LogOut, User, AlertCircle, MessageCircle } from 'lucide-react'
+import { Menu, X, BarChart3, BookOpen, Truck, RefreshCw, LogOut, User, AlertCircle, MessageCircle, MapPin } from 'lucide-react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
@@ -24,6 +24,7 @@ export default function StaffLayout({ children }) {
 
   const navItems = [
     { path: '/staff', label: 'Dashboard', icon: BarChart3 },
+    { path: '/staff/tracking', label: 'Live Tracking', icon: MapPin },
     { path: '/staff/bookings', label: 'Bookings', icon: BookOpen },
     { path: '/staff/returns', label: 'Process Return', icon: RefreshCw },
     { path: '/staff/waivers', label: 'Waivers', icon: AlertCircle },

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Menu, X, BarChart3, Truck, FileText, Settings, LogOut, Users, CreditCard, CheckCircle, User, AlertCircle, MessageCircle } from 'lucide-react'
+import { Menu, X, BarChart3, Truck, FileText, Settings, LogOut, Users, CreditCard, CheckCircle, User, AlertCircle, MessageCircle, MapPin } from 'lucide-react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
@@ -24,6 +24,7 @@ export default function AdminLayout({ children }) {
 
   const navItems = [
     { path: '/admin/dashboard', label: 'Dashboard', icon: BarChart3 },
+    { path: '/admin/tracking', label: 'Live Tracking', icon: MapPin },
     { path: '/admin/users', label: 'Users', icon: Users },
     { path: '/admin/bookings', label: 'Bookings', icon: FileText },
     { path: '/admin/vehicles', label: 'Vehicles', icon: Truck },

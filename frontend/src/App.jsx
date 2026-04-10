@@ -5,6 +5,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import CustomerRoute from './components/CustomerRoute'
 import StaffRoute from './components/StaffRoute'
 import AdminRoute from './components/AdminRoute'
+import AdminStaffRoute from './components/AdminStaffRoute'
 import ToastContainer from './components/ToastContainer'
 
 // Auth Pages
@@ -23,6 +24,7 @@ import StaffVehiclesPage from './pages/staff/VehiclesPage'
 import StaffPaymentsPage from './pages/staff/PaymentsPage'
 import StaffWaiverManagement from './pages/staff/WaiverManagement'
 import StaffFeedbackPage from './pages/staff/FeedbackPage'
+import StaffTrackingPage from './pages/staff/TrackingPage'
 
 // Customer Pages
 import DashboardPage from './pages/DashboardPage'
@@ -33,6 +35,7 @@ import HistoryPage from './pages/HistoryPage'
 import FeedbackPage from './pages/FeedbackPage'
 import ProfilePage from './pages/ProfilePage'
 import TripTrackingPage from './pages/TripTrackingPage'
+import TrackingPage from './pages/TrackingPage'
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard'
@@ -46,6 +49,10 @@ import StaffApprovalPage from './pages/admin/StaffApprovalPage'
 import AdminWaiverManagement from './pages/admin/WaiverManagement'
 import AdminFeedbackPage from './pages/admin/FeedbackPage'
 import LiveTrackingPage from './pages/admin/LiveTrackingPage'
+import AdminTrackingPage from './pages/admin/AdminTrackingPage'
+
+// New SaaS Tracking Page
+import SaaSTrackingPage from './pages/SaaSTrackingPage'
 
 export default function App() {
   return (
@@ -158,6 +165,16 @@ export default function App() {
             }
           />
 
+          {/* Live Tracking Page - SaaS Level Interface (Admin/Staff Only) */}
+          <Route
+            path="/tracking"
+            element={
+              <AdminStaffRoute>
+                <SaaSTrackingPage />
+              </AdminStaffRoute>
+            }
+          />
+
           {/* Staff Routes */}
           <Route
             path="/staff"
@@ -212,6 +229,14 @@ export default function App() {
             element={
               <StaffRoute>
                 <StaffFeedbackPage />
+              </StaffRoute>
+            }
+          />
+          <Route
+            path="/staff/tracking"
+            element={
+              <StaffRoute>
+                <StaffTrackingPage />
               </StaffRoute>
             }
           />
@@ -302,6 +327,14 @@ export default function App() {
             element={
               <AdminRoute>
                 <AdminFeedbackPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/tracking"
+            element={
+              <AdminRoute>
+                <AdminTrackingPage />
               </AdminRoute>
             }
           />

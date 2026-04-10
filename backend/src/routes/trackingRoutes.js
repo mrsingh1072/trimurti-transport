@@ -27,11 +27,11 @@ router.get(
 );
 
 // Get live tracking data for all active bookings with location sharing enabled
-// ✅ Only Staff and Admin can access (for dashboard display)
+// ✅ Staff and Admin get ALL vehicles
+// ✅ Customers get THEIR OWN tracked bookings (NEW!)
 router.get(
   '/live',
   protect,
-  authorize(USER_ROLES.STAFF, USER_ROLES.ADMIN),
   trackingController.getLiveTracking
 );
 

@@ -330,18 +330,29 @@ const getActiveVehicles = async (req, res) => {
  */
 const getLiveTracking = async (req, res) => {
   try {
-    console.log('🔴 Fetch live tracking data:', { userId: req.user?._id });
+    const userId = req.user?._id;
+    const userRole = req.user?.role;
+    console.log('🔴 Fetch live tracking data:', { userId, userRole });
 
-    // Fetch ALL bookings with tracking enabled
-    const bookings = await Booking.find({
-      isTracking: true
-    })
+    // Build filter based on user role
+    let filter = { isTracking: true };
+    
+    // If customer - only show their own bookings
+    if (userRole === 'customer') {
+      filter.user = userId;
+      console.log('👤 CUSTOMER MODE - Fetching only own bookings');
+    } else {
+      console.log('👨‍💼 STAFF/ADMIN MODE - Fetching all tracked bookings');
+    }
+
+    // Fetch bookings with tracking enabled
+    const bookings = await Booking.find(filter)
       .populate('user', 'name phone email')
       .populate('vehicle', 'model registrationNumber vehicleType')
-      .select('_id status isTracking currentLocation createdAt updatedAt')
+      .select('_id status isTracking currentLocation createdAt updatedAt user')
       .sort({ updatedAt: -1 });
 
-    console.log(`📊 Total bookings with isTracking=true: ${bookings.length}`);
+    console.log(`📊 Total bookings found: ${bookings.length}`);
     
     // Show what we found
     bookings.forEach((b, idx) => {

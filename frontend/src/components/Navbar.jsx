@@ -34,6 +34,12 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-8">
             <Link to="/vehicles" className="text-gray-300 hover:text-white transition">Vehicles</Link>
             <Link to="/my-bookings" className="text-gray-300 hover:text-white transition">My Bookings</Link>
+            {(user?.role === 'staff' || user?.role === 'admin') && (
+              <Link to="/tracking" className="text-gray-300 hover:text-white transition flex items-center gap-1">
+                <span>🚗</span>
+                <span>Live Tracking</span>
+              </Link>
+            )}
             <Link to="/history" className="text-gray-300 hover:text-white transition">History</Link>
             <Link to="/feedback" className="text-gray-300 hover:text-white transition">Feedback</Link>
             <Link to="/dashboard" className="text-gray-300 hover:text-white transition">Dashboard</Link>
@@ -109,6 +115,12 @@ export default function Navbar() {
                 </button>
                 <Link to="/vehicles" className="text-gray-300 hover:text-white transition">Vehicles</Link>
                 <Link to="/my-bookings" className="text-gray-300 hover:text-white transition">My Bookings</Link>
+                {(user?.role === 'staff' || user?.role === 'admin') && (
+                  <Link to="/tracking" className="text-gray-300 hover:text-white transition flex items-center gap-1" onClick={() => setIsOpen(false)}>
+                    <span>🚗</span>
+                    <span>Live Tracking</span>
+                  </Link>
+                )}
                 <Link to="/history" className="text-gray-300 hover:text-white transition">History</Link>
                 <Link to="/feedback" className="text-gray-300 hover:text-white transition">Feedback</Link>
                 <Link to="/dashboard" className="text-gray-300 hover:text-white transition">Dashboard</Link>

@@ -189,3 +189,139 @@ body {
 .container-max {
   @apply max-w-7xl mx-auto px-6;
 }
+
+/* ===== PREMIUM LEAFLET MAP STYLES ===== */
+
+/* Premium light zoom controls */
+.leaflet-control-zoom {
+  border: none !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15) !important;
+  margin: 16px !important;
+  background: transparent !important;
+}
+
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+  background: #ffffff !important;
+  color: #374151 !important;
+  border: none !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  font-size: 18px !important;
+  font-weight: 300 !important;
+  width: 38px !important;
+  height: 38px !important;
+  line-height: 38px !important;
+  transition: all 0.2s ease !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.leaflet-control-zoom-in:hover,
+.leaflet-control-zoom-out:hover {
+  background: #f9fafb !important;
+  color: #f59e0b !important;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.2) !important;
+}
+
+.leaflet-control-zoom-out {
+  border-bottom: none !important;
+}
+
+/* Hide default attribution branding bar */
+.leaflet-control-attribution {
+  background: rgba(255,255,255,0.8) !important;
+  color: #9ca3af !important;
+  font-size: 9px !important;
+  padding: 2px 8px !important;
+  border-radius: 6px 0 0 0 !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.leaflet-control-attribution a {
+  color: #9ca3af !important;
+}
+
+.leaflet-control-attribution a:hover {
+  color: #f59e0b !important;
+}
+
+/* Remove white tile flash on load */
+.leaflet-container {
+  background: #f0ebe3 !important;
+}
+
+.leaflet-control-zoom {
+  border: none !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15) !important;
+  margin: 16px !important;
+}
+
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+  background: #ffffff !important;
+  color: #374151 !important;
+  border: none !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  width: 38px !important;
+  height: 38px !important;
+  line-height: 38px !important;
+  font-size: 18px !important;
+  font-weight: 300 !important;
+}
+
+.leaflet-control-zoom-in:hover,
+.leaflet-control-zoom-out:hover {
+  background: #f9fafb !important;
+  color: #f59e0b !important;
+}
+
+.leaflet-control-attribution {
+  background: rgba(255,255,255,0.8) !important;
+  color: #9ca3af !important;
+  font-size: 9px !important;
+}
+
+/* Map popup styling */
+.leaflet-popup-content-wrapper {
+  background: rgba(17, 24, 39, 0.95) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 193, 7, 0.2) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+}
+
+.leaflet-popup-content {
+  color: #fff !important;
+}
+
+.leaflet-popup-tip {
+  background: rgba(17, 24, 39, 0.95) !important;
+  border: 1px solid rgba(255, 193, 7, 0.2) !important;
+}
+
+/* Custom popup styling */
+.custom-popup {
+  color: white;
+}
+
+.custom-popup .leaflet-popup-content {
+  padding: 8px 12px;
+}
+
+/* Pulse ring animation for vehicle markers */
+@keyframes pulseRing {
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
