@@ -838,4 +838,25 @@ export const getLiveTracking = async () => {
   }
 }
 
+// 📍 Update vehicle location in real-time (Customer Side)
+export const updateVehicleLocation = async (bookingId, { latitude, longitude, accuracy = null, speed = 0 }) => {
+  try {
+    console.log('📍 [UPDATE LOCATION] Sending GPS coordinates for booking:', bookingId, { latitude, longitude })
+    const response = await apiClient.post(`/tracking/${bookingId}/location`, {
+      lat: latitude,
+      lng: longitude,
+      accuracy,
+      speed
+    })
+    console.log('✅ [UPDATE LOCATION] Location updated successfully')
+    return response.data
+  } catch (error) {
+    console.error('❌ [UPDATE LOCATION] Error:', {
+      status: error.response?.status,
+      message: error.response?.data?.message || error.message
+    })
+    throw error
+  }
+}
+
 export default apiClient

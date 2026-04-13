@@ -366,6 +366,27 @@ export const onTrackingEnded = (callback) => {
   })
 }
 
+/**
+ * Update location via API (alternative to Socket.IO)
+ * Sends real-time GPS coordinates to backend
+ */
+export const updateLocation = async (bookingId, { latitude, longitude, accuracy = null, speed = 0 }) => {
+  try {
+    console.log('📍 [TRACKING SERVICE] Updating location via API:', { bookingId, latitude, longitude })
+    const response = await trackingApiClient.post(`/tracking/${bookingId}/location`, {
+      lat: latitude,
+      lng: longitude,
+      accuracy,
+      speed
+    })
+    console.log('✅ [TRACKING SERVICE] Location update success')
+    return response.data
+  } catch (error) {
+    console.error('❌ [TRACKING SERVICE] Failed to update location:', error.message)
+    throw error
+  }
+}
+
 export default {
   initializeSocketConnection,
   disconnectSocket,

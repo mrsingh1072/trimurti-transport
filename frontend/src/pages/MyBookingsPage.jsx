@@ -8,7 +8,7 @@ import PaymentDetailsModal from '../components/PaymentDetailsModal'
 import RequestReturnModal from '../components/RequestReturnModal'
 import RequestWaiverModal from '../components/RequestWaiverModal'
 import Card from '../components/Card'
-import { getUserBookings, cancelBooking, getPaymentById, createFinePaymentOrder, verifyFinePayment } from '../services/api'
+import { getUserBookings, cancelBooking, getPaymentById, createFinePaymentOrder, verifyFinePayment, updateVehicleLocation } from '../services/api'
 import { enableLocationSharing, disableLocationSharing } from '../services/trackingService'
 import { useAuth } from '../context/AuthContext'
 
@@ -334,11 +334,21 @@ export default function MyBookingsPage() {
           const { latitude, longitude, accuracy, speed } = position.coords
           console.log('📍 Location update:', { latitude, longitude, accuracy, speed })
           
-          // Send to backend via tracking service
-          // This would typically call an API to update the backend
-          console.log(`✅ Tracking active for booking ${bookingId}`)
+          // Send to backend via API
+          try {
+            await updateVehicleLocation(bookingId, {
+              latitude,
+              longitude,
+              accuracy,
+              speed: speed || 0
+            })
+            console.log(`✅ Location sent to backend for booking ${bookingId}`)
+          } catch (apiError) {
+            console.error('⚠️ Failed to send location to backend:', apiError.message)
+            // Continue watching even if one update fails
+          }
         } catch (error) {
-          console.error('Error sending location:', error)
+          console.error('Error processing location:', error)
         }
       },
       (error) => {

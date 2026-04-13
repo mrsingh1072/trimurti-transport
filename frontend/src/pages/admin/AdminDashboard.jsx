@@ -241,11 +241,19 @@ export default function AdminDashboard() {
           ) : liveVehicles.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {liveVehicles.map((vehicle) => {
-                const isWaitingForLocation = vehicle.currentLocation?.status === 'pending' || !vehicle.currentLocation?.latitude
+                // ✅ Handle both response formats:
+                // 1. API response format: latitude, longitude, lastUpdated (top level)
+                // 2. Booking format: currentLocation.latitude, currentLocation.longitude, currentLocation.updatedAt
+                const hasCoordinates = (vehicle.latitude !== null && vehicle.latitude !== undefined) || 
+                                      (vehicle.currentLocation?.latitude !== null && vehicle.currentLocation?.latitude !== undefined)
+                const lat = vehicle.latitude ?? vehicle.currentLocation?.latitude
+                const lng = vehicle.longitude ?? vehicle.currentLocation?.longitude
+                const lastUpdate = vehicle.lastUpdated ?? vehicle.currentLocation?.updatedAt
+                const isWaitingForLocation = !hasCoordinates
 
                 return (
                   <div
-                    key={vehicle.bookingId}
+                    key={vehicle.bookingId || vehicle._id}
                     className={`rounded-lg p-4 transition-all ${
                       isWaitingForLocation
                         ? 'bg-gradient-to-br from-yellow-800/40 to-yellow-800/10 border border-yellow-700/50'
@@ -269,7 +277,7 @@ export default function AdminDashboard() {
                           ? 'bg-yellow-500/20 text-yellow-400'
                           : 'bg-green-500/20 text-green-400'
                       }`}>
-                        {isWaitingForLocation ? 'Waiting...' : 'Active'}
+                        {vehicle.status === 'waiting' ? '⏳ Waiting' : vehicle.status === 'active' ? '✅ Active' : '✓ Completed'}
                       </span>
                     </div>
 
@@ -290,7 +298,7 @@ export default function AdminDashboard() {
                           </p>
                         ) : (
                           <p className="text-white font-mono text-xs">
-                            {vehicle.currentLocation?.latitude?.toFixed(6)}, {vehicle.currentLocation?.longitude?.toFixed(6)}
+                            {lat?.toFixed(6)}, {lng?.toFixed(6)}
                           </p>
                         )}
                       </div>
@@ -301,8 +309,8 @@ export default function AdminDashboard() {
                           Last Update
                         </p>
                         <p className="text-white text-xs">
-                          {vehicle.currentLocation?.updatedAt
-                            ? new Date(vehicle.currentLocation.updatedAt).toLocaleTimeString()
+                          {lastUpdate
+                            ? new Date(lastUpdate).toLocaleString()
                             : 'Pending...'}
                         </p>
                       </div>

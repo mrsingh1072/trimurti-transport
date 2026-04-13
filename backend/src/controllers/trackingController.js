@@ -322,72 +322,124 @@ const getActiveVehicles = async (req, res) => {
 };
 
 /**
- * Get live tracking data - ✅ STAFF/ADMIN ONLY
+ * Get live tracking data - ✅ STAFF/ADMIN ONLY (or customers for their own)
  * 
  * Returns all bookings with location tracking enabled
  * Includes vehicle, customer, and current location information
  * Shows bookings even while waiting for first location update
+ * 
+ * Parameters:
+ * - includeWaiting: (query param, default=true) Include vehicles waiting for first location
+ * 
+ * Response structure:
+ * {
+ *   success: boolean,
+ *   count: number,
+ *   data: [
+ *     {
+ *       _id: string,
+ *       bookingId: string,
+ *       vehicleName: string,
+ *       customerName: string,
+ *       status: "waiting" | "active" | "completed",
+ *       locationSharingEnabled: boolean,
+ *       latitude: number | null,
+ *       longitude: number | null,
+ *       lastUpdated: Date | null
+ *     }
+ *   ]
+ * }
  */
 const getLiveTracking = async (req, res) => {
   try {
     const userId = req.user?._id;
     const userRole = req.user?.role;
-    console.log('🔴 Fetch live tracking data:', { userId, userRole });
+    const { includeWaiting = 'true' } = req.query;
+    
+    console.log('🔴 Fetch live tracking data:', { userId, userRole, includeWaiting });
 
-    // Build filter based on user role
+    // ✅ ROLE-BASED ACCESS CONTROL
+    // Allow staff and admin to see all, customers to see their own
     let filter = { isTracking: true };
     
-    // If customer - only show their own bookings
     if (userRole === 'customer') {
       filter.user = userId;
       console.log('👤 CUSTOMER MODE - Fetching only own bookings');
-    } else {
+    } else if (userRole === 'staff' || userRole === 'admin') {
       console.log('👨‍💼 STAFF/ADMIN MODE - Fetching all tracked bookings');
+    } else {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Only staff, admin, and customers can access tracking data.'
+      });
     }
 
     // Fetch bookings with tracking enabled
     const bookings = await Booking.find(filter)
       .populate('user', 'name phone email')
-      .populate('vehicle', 'model registrationNumber vehicleType')
-      .select('_id status isTracking currentLocation createdAt updatedAt user')
+      .populate('vehicle', 'name model registrationNumber vehicleType')
       .sort({ updatedAt: -1 });
 
     console.log(`📊 Total bookings found: ${bookings.length}`);
     
-    // Show what we found
-    bookings.forEach((b, idx) => {
-      console.log(`  [${idx+1}] ${b._id} - Status: ${b.status}, Has Location: ${b.currentLocation?.latitude ? '✓' : '⏳ pending'}`);
-    });
+    // Transform to response format
+    const liveVehicles = bookings
+      .map(booking => {
+        // Determine tracking status
+        const hasCoordinates = booking.currentLocation?.latitude && booking.currentLocation?.longitude;
+        let trackingStatus = 'completed'; // default
+        
+        if (booking.status === 'completed') {
+          trackingStatus = 'completed';
+        } else if (hasCoordinates) {
+          trackingStatus = 'active';
+        } else {
+          trackingStatus = 'waiting';
+        }
 
-    // Transform ALL to response format (don't filter out those without coordinates)
-    const liveVehicles = bookings.map(booking => ({
-      bookingId: booking._id,
-      status: booking.status,
-      isTracking: booking.isTracking,
-      customerName: booking.user?.name || 'N/A',
-      customerPhone: booking.user?.phone || 'N/A',
-      vehicleName: booking.vehicle?.model || 'N/A',
-      registrationNumber: booking.vehicle?.registrationNumber || 'N/A',
-      vehicleType: booking.vehicle?.vehicleType || 'N/A',
-      currentLocation: booking.currentLocation ? {
-        latitude: booking.currentLocation.latitude,
-        longitude: booking.currentLocation.longitude,
-        updatedAt: booking.currentLocation.updatedAt,
-        status: booking.currentLocation?.latitude ? 'live' : 'pending'
-      } : {
-        latitude: null,
-        longitude: null,
-        updatedAt: null,
-        status: 'pending'  // Show as pending if no location yet
-      },
-      bookingUpdatedAt: booking.updatedAt
-    }));
+        const vehicleData = {
+          _id: booking._id.toString(),
+          bookingId: booking._id.toString(),
+          vehicleName: booking.vehicle?.name || booking.vehicle?.model || 'Unknown Vehicle',
+          customerName: booking.user?.name || 'Unknown Customer',
+          status: trackingStatus,
+          locationSharingEnabled: booking.isTracking === true,
+          latitude: booking.currentLocation?.latitude || null,
+          longitude: booking.currentLocation?.longitude || null,
+          lastUpdated: booking.currentLocation?.updatedAt || null,
+          // Additional fields for dashboard/UI
+          customerPhone: booking.user?.phone,
+          registrationNumber: booking.vehicle?.registrationNumber || 'N/A',
+          vehicleType: booking.vehicle?.vehicleType || 'N/A',
+          bookingStatus: booking.status,
+          createdAt: booking.createdAt,
+          updatedAt: booking.updatedAt
+        };
 
-    console.log(`✅ Returning ${liveVehicles.length} tracked vehicles (including ${liveVehicles.filter(v => v.currentLocation.status === 'pending').length} waiting for location)`);
+        return vehicleData;
+      })
+      .filter(v => {
+        // Filter out "waiting" vehicles if includeWaiting is false
+        if (includeWaiting === 'false' && v.status === 'waiting') {
+          return false;
+        }
+        return true;
+      });
+
+    const waitingCount = liveVehicles.filter(v => v.status === 'waiting').length;
+    const activeCount = liveVehicles.filter(v => v.status === 'active').length;
+    const completedCount = liveVehicles.filter(v => v.status === 'completed').length;
+
+    console.log(`✅ Returning ${liveVehicles.length} tracked vehicles - Active: ${activeCount}, Waiting: ${waitingCount}, Completed: ${completedCount}`);
 
     res.json({
       success: true,
       count: liveVehicles.length,
+      summary: {
+        active: activeCount,
+        waiting: waitingCount,
+        completed: completedCount
+      },
       data: liveVehicles
     });
   } catch (error) {

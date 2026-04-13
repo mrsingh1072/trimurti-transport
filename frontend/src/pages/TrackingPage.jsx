@@ -111,6 +111,29 @@ export default function TrackingPage() {
     }
   }, [user?.role])
 
+  // Auto-center map on first vehicle with valid coordinates
+  useEffect(() => {
+    if (trackedBookings.length > 0 && mapRef?.current) {
+      const firstActiveVehicle = trackedBookings.find(b => 
+        b.currentLocation?.latitude && b.currentLocation?.longitude
+      ) || trackedBookings.find(b => 
+        b.latitude !== null && b.latitude !== undefined && 
+        b.longitude !== null && b.longitude !== undefined
+      )
+
+      if (firstActiveVehicle) {
+        console.log('🗺️ Centering map on first active vehicle:', firstActiveVehicle.vehicleName)
+        const lat = firstActiveVehicle.currentLocation?.latitude || firstActiveVehicle.latitude
+        const lng = firstActiveVehicle.currentLocation?.longitude || firstActiveVehicle.longitude
+        mapRef.current.setView([lat, lng], 14, { animate: true })
+      } else {
+        // Fallback to Delhi center
+        console.log('🗺️ No active vehicles, using fallback center (Delhi)')
+        mapRef.current.setView([28.6139, 77.2090], 12, { animate: true })
+      }
+    }
+  }, [trackedBookings])
+
   // Auto-select first vehicle when data loads
   useEffect(() => {
     if (trackedBookings.length > 0 && !selectedBooking) {
@@ -232,19 +255,21 @@ export default function TrackingPage() {
               <div className="flex-1 overflow-y-auto space-y-2 p-3">
                 {trackedBookings.map((booking) => {
                   // Get vehicle name from multiple possible sources
-                  const vehicleName = booking.vehicleName || booking.vehicle?.model || booking.vehicle?.modelName || 'Vehicle'
+                  const vehicleName = booking.vehicleName || booking.vehicle?.model || booking.vehicle?.name || 'Vehicle'
                   const regNumber = booking.registrationNumber || booking.vehicle?.registrationNumber || 'N/A'
-                  const customerName = booking.customerName || booking.user?.name || 'Customer'
+                  const customerName = booking.customerName || booking.user?.name || booking.customer?.name || 'Customer'
                   
-                  const isWaiting = booking.currentLocation?.status === 'pending' || !booking.currentLocation?.latitude
-                  const isSelected = selectedBooking?.bookingId === booking.bookingId
+                  // Check if vehicle is waiting for location using the status field
+                  const isWaiting = booking.status === 'waiting' || booking.currentLocation?.status === 'pending' || (!booking.currentLocation?.latitude && !booking.latitude)
+                  const isActive = booking.status === 'active' || (booking.currentLocation?.latitude && booking.currentLocation?.longitude) || (booking.latitude && booking.longitude)
+                  const isSelected = selectedBooking?.bookingId === booking.bookingId || selectedBooking?._id === booking._id
 
                   return (
                     <div
-                      key={booking.bookingId}
+                      key={booking._id || booking.bookingId}
                       onClick={() => {
                         setSelectedBooking(booking)
-                        console.log('🔄 Selected booking:', booking.bookingId, { vehicleName, customerName })
+                        console.log('🔄 Selected booking:', booking.bookingId || booking._id, { vehicleName, customerName })
                       }}
                       className={`p-3 rounded-lg cursor-pointer transition ${
                         isSelected
@@ -262,7 +287,7 @@ export default function TrackingPage() {
                           </p>
                         </div>
                         <div className={`flex-shrink-0 w-2.5 h-2.5 rounded-full mt-1 ${
-                          isWaiting ? 'bg-yellow-500 animate-pulse' : 'bg-green-500 animate-pulse'
+                          isActive ? 'bg-green-500 animate-pulse' : 'bg-yellow-500 animate-pulse'
                         }`} />
                       </div>
 
@@ -271,8 +296,10 @@ export default function TrackingPage() {
                         <p className="text-xs">
                           {isWaiting ? (
                             <span className="text-yellow-400 font-semibold">⏳ Waiting for location...</span>
+                          ) : isActive ? (
+                            <span className="text-green-400 font-semibold">🟢 Tracking Active</span>
                           ) : (
-                            <span className="text-green-400 font-semibold">● Pending</span>
+                            <span className="text-blue-400 font-semibold">🔵 Completed</span>
                           )}
                         </p>
                       </div>
@@ -280,15 +307,6 @@ export default function TrackingPage() {
                       {/* Status badge - simplified */}
                       <div className="mt-3 pt-2 border-t border-gray-700 text-xs text-gray-400">
                         {isSelected && <span className="text-blue-400 font-semibold">✓ Tracking</span>}
-                      </div>
-                      <div className="mt-2 hidden">
-                        <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
-                          isWaiting
-                            ? 'bg-yellow-500/20 text-yellow-400'
-                            : 'bg-green-500/20 text-green-400'
-                        }`}>
-                          {isWaiting ? '⏳ Pending' : '✓ Active'}
-                        </span>
                       </div>
                     </div>
                   )

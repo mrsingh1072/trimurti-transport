@@ -37,15 +37,19 @@ export default function StaffTrackingPage() {
       if (!refetching) setLoading(true)
       setError(null)
       const data = await getLiveTracking()
+      // ✅ INCLUDE ALL VEHICLES - both with and without coordinates
+      // Vehicles without coordinates will show as "Waiting..." in the list
+      // Only vehicles with valid coordinates will be shown as markers on the map
       const vehicleList = Array.isArray(data) ? data : (data?.data || [])
-      const validVehicles = vehicleList.filter(v =>
-        v && v.currentLocation &&
-        parseFloat(v.currentLocation.latitude) &&
-        parseFloat(v.currentLocation.longitude)
-      )
-      setVehicles(validVehicles)
-      if (!autoSelectDoneRef.current && validVehicles.length > 0) {
-        setSelectedVehicle(validVehicles[0])
+      console.log('📍 Received vehicles:', vehicleList.length, 'total')
+      
+      setVehicles(vehicleList)
+      if (!autoSelectDoneRef.current && vehicleList.length > 0) {
+        // Auto-select first vehicle with active coordinates, or first vehicle overall
+        const activeVehicle = vehicleList.find(v => 
+          v && v.latitude !== null && v.longitude !== null
+        ) || vehicleList[0]
+        setSelectedVehicle(activeVehicle)
         autoSelectDoneRef.current = true
       }
     } catch (err) {
@@ -186,21 +190,37 @@ export default function StaffTrackingPage() {
               </div>
             ) : (
               <div className="p-3 space-y-2">
-                {searchedVehicles.map(vehicle => (
-                  <button key={vehicle.bookingId || vehicle._id} onClick={() => { handleVehicleSelect(vehicle); setMobileOpen(false); }} className={`w-full p-3 rounded-xl text-left transition-all border-2 ${selectedVehicle?.bookingId === vehicle.bookingId || selectedVehicle?._id === vehicle._id ? 'bg-blue-50 border-blue-400 shadow-md' : 'bg-white border-gray-200 hover:border-gray-300'}`}>
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={`w-2 h-2 rounded-full ${vehicle.currentLocation?.status === 'live' ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></span>
-                          <p className="font-bold text-gray-900 text-sm truncate">{vehicle.vehicleName || 'Vehicle'}</p>
+                {searchedVehicles.map(vehicle => {
+                  // Determine status and styling
+                  const statusConfig = {
+                    waiting: { icon: '🟡', label: 'Waiting', color: 'bg-yellow-500', textColor: 'text-yellow-600', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-300' },
+                    active: { icon: '🟢', label: 'Active', color: 'bg-green-500', textColor: 'text-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-300' },
+                    completed: { icon: '🔵', label: 'Completed', color: 'bg-blue-500', textColor: 'text-blue-600', bgColor: 'bg-blue-50', borderColor: 'border-blue-300' }
+                  }
+                  const status = vehicle.status || 'waiting'
+                  const config = statusConfig[status] || statusConfig.waiting
+                  
+                  return (
+                    <button key={vehicle.bookingId || vehicle._id} onClick={() => { handleVehicleSelect(vehicle); setMobileOpen(false); }} className={`w-full p-3 rounded-xl text-left transition-all border-2 ${selectedVehicle?.bookingId === vehicle.bookingId || selectedVehicle?._id === vehicle._id ? `${config.bgColor} ${config.borderColor} shadow-md` : 'bg-white border-gray-200 hover:border-gray-300'}`}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`text-lg`}>{config.icon}</span>
+                            <p className="font-bold text-gray-900 text-sm truncate">{vehicle.vehicleName || 'Vehicle'}</p>
+                          </div>
+                          <p className="text-xs text-gray-600 font-mono mb-1">{vehicle.registrationNumber || 'N/A'}</p>
+                          <p className="text-xs text-gray-700">👤 {vehicle.customerName || 'Unknown'}</p>
+                          <div className="mt-2 flex items-center gap-1">
+                            <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${config.textColor} ${config.bgColor}`}>
+                              {config.label}
+                            </span>
+                          </div>
                         </div>
-                        <p className="text-xs text-gray-600 font-mono mb-1">{vehicle.registrationNumber || 'N/A'}</p>
-                        <p className="text-xs text-gray-700">{vehicle.customerName || 'Unknown'}</p>
+                        <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0 mt-1" />
                       </div>
-                      <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0 mt-1" />
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  )
+                })}
               </div>
             )}
           </div>

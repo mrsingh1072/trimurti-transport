@@ -187,11 +187,17 @@ export default function LiveTrackingMap({ booking, mapRef, onComplete, onReportI
 
         {/* Waiting for location overlay */}
         {!hasValidLocation && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-800/60 backdrop-blur-sm z-20">
-            <div className="text-center">
-              <AlertCircle className="w-12 h-12 text-yellow-400 mx-auto mb-3 animate-pulse" />
-              <p className="text-white font-semibold mb-1">Awaiting GPS</p>
-              <p className="text-gray-300 text-sm">Vehicle location updating...</p>
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-800/80 backdrop-blur-sm z-20 rounded-xl">
+            <div className="text-center px-6">
+              <div className="mb-3 text-5xl animate-pulse">📍</div>
+              <p className="text-white font-bold text-lg mb-2">Waiting for First Location Update</p>
+              <p className="text-gray-300 text-sm">
+                Vehicle location will appear here as soon as GPS data is received. The vehicle is actively being tracked.
+              </p>
+              <div className="mt-4 flex items-center justify-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></div>
+                <span className="text-gray-400 text-xs">Awaiting GPS signal...</span>
+              </div>
             </div>
           </div>
         )}
