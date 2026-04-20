@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import { getLiveTracking } from '../../services/api'
 import EnhancedLiveTrackingMap from '../../components/EnhancedLiveTrackingMap'
 import StaffLayout from '../../components/StaffLayout'
-import { AlertCircle, Search, MapPin, ChevronRight, Menu, X, Zap, Navigation, Home, Plus, Edit, Trash2 } from 'lucide-react'
+import { AlertCircle, Search, MapPin, ChevronRight, ChevronDown, Menu, X, Zap, Navigation, Home, Plus, Edit, Trash2 } from 'lucide-react'
 
 /**
  * Staff Live Vehicle Tracking Page - Premium SaaS Dashboard
@@ -23,12 +23,10 @@ export default function StaffTrackingPage() {
   const [refetching, setRefetching] = useState(false)
   const [activeTab, setActiveTab] = useState('daily')
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [cardPosition, setCardPosition] = useState({ top: 'auto', right: 'auto', left: 'auto', bottom: 'auto' })
   const autoSelectDoneRef = useRef(false)
   const pollingIntervalRef = useRef(null)
   const lastUpdateRef = useRef(Date.now())
   const mapContainerRef = useRef(null)
-  const detailCardRef = useRef(null)
 
   const getTimeSince = (timestamp) => {
     if (!timestamp) return 'just now'
@@ -51,67 +49,17 @@ export default function StaffTrackingPage() {
   const [editingLocation, setEditingLocation] = useState(null)
   const [newLocation, setNewLocation] = useState({ name: '', address: '', icon: '📍', lat: 28.6139, lng: 77.2090 })
 
-  // Smart positioning for detail card - keeps it within map bounds
-  const calculateCardPosition = useCallback(() => {
-    if (!mapContainerRef.current || !detailCardRef.current) return
-    
-    const mapBounds = mapContainerRef.current.getBoundingClientRect()
-    const cardBounds = detailCardRef.current.getBoundingClientRect()
-    
-    const cardWidth = 320 // md desktop width
-    const cardHeight = 280 // approximate height
-    const padding = 16 // distance from edges
-    
-    let newPosition = { top: 'auto', right: 'auto', left: 'auto', bottom: 'auto' }
-    
-    // Desktop: position relative to map container
-    if (window.innerWidth >= 768) {
-      // Default: try to position on right side with some spacing
-      const rightSpace = mapBounds.right - (cardBounds.left || mapBounds.right - cardWidth - padding)
-      const leftSpace = (cardBounds.left || mapBounds.left) - mapBounds.left
-      
-      // Check if card fits on the right side
-      if (rightSpace > cardWidth + padding) {
-        newPosition.right = `${padding}px`
-        newPosition.left = 'auto'
-      } else if (leftSpace > cardWidth + padding) {
-        // Try left side if right doesn't fit
-        newPosition.left = `${padding}px`
-        newPosition.right = 'auto'
-      } else {
-        // Default to right with constraint
-        newPosition.right = `${padding}px`
-        newPosition.left = 'auto'
-      }
-      
-      // Vertical positioning - prefer top, adjust if needed
-      if (mapBounds.top + cardHeight + padding < window.innerHeight) {
-        newPosition.top = `${padding}px`
-        newPosition.bottom = 'auto'
-      } else {
-        newPosition.bottom = `${padding}px`
-        newPosition.top = 'auto'
+  // Focus map on vehicle when selected
+  const focusOnVehicle = useCallback((vehicle) => {
+    if (vehicle && vehicle.latitude && vehicle.longitude) {
+      if (mapContainerRef.current && mapContainerRef.current.querySelector('.leaflet-container')) {
+        const map = mapContainerRef.current.leafletMap
+        if (map) {
+          map.setView([vehicle.latitude, vehicle.longitude], 16)
+        }
       }
     }
-    
-    setCardPosition(newPosition)
   }, [])
-
-  // Update card position when selected vehicle changes
-  useEffect(() => {
-    if (selectedVehicle) {
-      setTimeout(calculateCardPosition, 100) // Wait for card to render
-    }
-  }, [selectedVehicle, calculateCardPosition])
-
-  // Recalculate on window resize
-  useEffect(() => {
-    const handleResize = () => {
-      if (selectedVehicle) calculateCardPosition()
-    }
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [selectedVehicle, calculateCardPosition])
 
   // Center map on location
   const centerMapOnLocation = useCallback((lat, lng) => {
@@ -186,7 +134,8 @@ export default function StaffTrackingPage() {
 
   const handleVehicleSelect = useCallback((vehicle) => {
     setSelectedVehicle(vehicle)
-  }, [])
+    focusOnVehicle(vehicle)
+  }, [focusOnVehicle])
 
   const stats = {
     total: vehicles.length,
@@ -472,23 +421,69 @@ export default function StaffTrackingPage() {
                   const isSelected = selectedVehicle?.bookingId === vehicle.bookingId || selectedVehicle?._id === vehicle._id
                   
                   return (
-                    <button key={vehicle.bookingId || vehicle._id} onClick={() => { handleVehicleSelect(vehicle); setMobileOpen(false); }} className={`w-full p-3 rounded-lg text-left transition-all border vehicle-card-hover ${isSelected ? `bg-gradient-to-r ${config.color} ${config.border} shadow-lg shadow-emerald-500/20 ring-2 ring-emerald-500/50` : `bg-slate-900/30 border-slate-700/30 hover:border-slate-600/50 hover:bg-slate-900/50`}`}>
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1.5">
-                            <span className="text-lg">{config.icon}</span>
-                            <p className="font-bold text-white text-sm truncate">{vehicle.vehicleName || 'Vehicle'}</p>
+                    <div key={vehicle.bookingId || vehicle._id}>
+                      {/* Vehicle Card Header */}
+                      <button onClick={() => { handleVehicleSelect(vehicle); setMobileOpen(false); }} className={`w-full p-3 rounded-lg text-left transition-all border vehicle-card-hover ${isSelected ? `bg-gradient-to-r ${config.color} ${config.border} shadow-lg shadow-emerald-500/20 ring-2 ring-emerald-500/50` : `bg-slate-900/30 border-slate-700/30 hover:border-slate-600/50 hover:bg-slate-900/50`}`}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <span className="text-lg">{config.icon}</span>
+                              <p className="font-bold text-white text-sm truncate">{vehicle.vehicleName || 'Vehicle'}</p>
+                            </div>
+                            <p className="text-xs text-slate-400 font-mono mb-2">{vehicle.registrationNumber || 'N/A'}</p>
+                            <div className="flex items-center justify-between">
+                              <p className="text-xs text-slate-300">👤 {vehicle.customerName || 'Unknown'}</p>
+                              <span className={`text-xs font-semibold px-2 py-1 rounded-full bg-slate-900/40 ${config.text}`}>
+                                {config.label}
+                              </span>
+                            </div>
                           </div>
-                          <p className="text-xs text-slate-400 font-mono mb-2">{vehicle.registrationNumber || 'N/A'}</p>
-                          <div className="flex items-center justify-between">
-                            <p className="text-xs text-slate-300">👤 {vehicle.customerName || 'Unknown'}</p>
-                            <span className={`text-xs font-semibold px-2 py-1 rounded-full bg-slate-900/40 ${config.text}`}>
-                              {config.label}
-                            </span>
+                          {isSelected && <ChevronDown size={18} className="text-emerald-400 mt-1 flex-shrink-0" />}
+                        </div>
+                      </button>
+
+                      {/* Expanded Details - Accordion */}
+                      {isSelected && (
+                        <div className="mt-2 ml-0 mr-0 p-4 rounded-lg bg-slate-900/40 border border-emerald-500/30 space-y-3 animate-in slide-in-from-top-2 duration-200">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
+                              <p className="text-xs text-slate-400 mb-1 font-semibold">Registration</p>
+                              <p className="font-mono font-bold text-white text-sm">{vehicle.registrationNumber || 'N/A'}</p>
+                            </div>
+                            <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
+                              <p className="text-xs text-slate-400 mb-1 font-semibold">Speed</p>
+                              <p className="font-bold text-emerald-400 text-sm">{vehicle.currentSpeed?.toFixed(1) || '0'} km/h</p>
+                            </div>
+                          </div>
+
+                          <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
+                            <p className="text-xs text-slate-400 mb-1 font-semibold">Coordinates</p>
+                            <p className="font-mono text-white text-xs">{vehicle.latitude?.toFixed(4) || 'N/A'}, {vehicle.longitude?.toFixed(4) || 'N/A'}</p>
+                          </div>
+
+                          <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
+                            <p className="text-xs text-slate-400 mb-1 font-semibold">Last Update</p>
+                            <p className="text-white text-xs font-semibold text-emerald-400">{getTimeSince(vehicle.lastUpdate)}</p>
+                          </div>
+
+                          {vehicle.driverName && (
+                            <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
+                              <p className="text-xs text-slate-400 mb-1 font-semibold">Driver</p>
+                              <p className="text-white text-sm font-semibold">{vehicle.driverName}</p>
+                            </div>
+                          )}
+
+                          <div className="flex gap-2 pt-2">
+                            <button className="flex-1 px-3 py-2 text-xs bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-emerald-500/50 transition-all">
+                              View Map
+                            </button>
+                            <button onClick={() => setSelectedVehicle(null)} className="flex-1 px-3 py-2 text-xs bg-slate-700/50 hover:bg-slate-700 text-slate-300 font-semibold rounded-lg transition-all">
+                              Collapse
+                            </button>
                           </div>
                         </div>
-                      </div>
-                    </button>
+                      )}
+                    </div>
                   )
                 })}
               </div>
@@ -568,79 +563,7 @@ export default function StaffTrackingPage() {
           )}
         </div>
 
-        {/* VEHICLE DETAIL CARD - DESKTOP */}
-        {selectedVehicle && !mobileOpen && (
-          <div 
-            ref={detailCardRef}
-            className="hidden md:block absolute z-40 w-80 detail-card-popup"
-            style={{
-              top: cardPosition.top,
-              right: cardPosition.right,
-              left: cardPosition.left,
-              bottom: cardPosition.bottom,
-              maxHeight: '85vh',
-              overflow: 'auto'
-            }}
-          >
-            <div className="bg-slate-800/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-700/50 p-6">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow-lg shadow-emerald-500/50">
-                  {selectedVehicle.driverName?.charAt(0) || 'V'}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-white text-lg">{selectedVehicle.vehicleName || 'Vehicle'}</p>
-                  <p className="text-sm text-emerald-400 font-semibold">👤 {selectedVehicle.driverName || 'Driver'}</p>
-                  <p className="text-xs text-slate-400 mt-1">Customer: {selectedVehicle.customerName}</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
-                  <p className="text-xs text-slate-400 mb-1">Registration</p>
-                  <p className="font-mono font-bold text-white text-sm">{selectedVehicle.registrationNumber || 'N/A'}</p>
-                </div>
-                <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
-                  <p className="text-xs text-slate-400 mb-1">Speed</p>
-                  <p className="font-bold text-emerald-400 text-sm">{selectedVehicle.currentSpeed?.toFixed(1) || '0'} km/h</p>
-                </div>
-              </div>
-              <button className="w-full px-4 py-3 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-emerald-500/50 transition-all hover:scale-105">
-                VIEW FULL DETAILS
-              </button>
-            </div>
-          </div>
-        )}
 
-        {/* VEHICLE DETAIL CARD - MOBILE BOTTOM SHEET */}
-        {selectedVehicle && mobileOpen && (
-          <div className={`md:hidden fixed bottom-0 left-0 right-0 bg-slate-800/95 backdrop-blur-md rounded-t-2xl shadow-2xl z-40 bottom-sheet border-t border-slate-700/50`} style={{ height: 'auto', maxHeight: '70vh', overflow: 'auto' }}>
-            <div className="flex justify-center pt-3 pb-1"><div className="w-12 h-1 bg-slate-700 rounded-full"></div></div>
-            <div className="p-4">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow-lg shadow-emerald-500/50">
-                  {selectedVehicle.driverName?.charAt(0) || 'V'}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-white">{selectedVehicle.vehicleName || 'Vehicle'}</p>
-                  <p className="text-sm text-emerald-400 font-semibold">👤 {selectedVehicle.driverName || 'Driver'}</p>
-                  <p className="text-xs text-slate-400">Customer: {selectedVehicle.customerName}</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
-                  <p className="text-xs text-slate-400 mb-1">Registration</p>
-                  <p className="font-mono font-bold text-white text-sm">{selectedVehicle.registrationNumber || 'N/A'}</p>
-                </div>
-                <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
-                  <p className="text-xs text-slate-400 mb-1">Speed</p>
-                  <p className="font-bold text-emerald-400 text-sm">{selectedVehicle.currentSpeed?.toFixed(1) || '0'} km/h</p>
-                </div>
-              </div>
-              <button className="w-full px-4 py-3 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-emerald-500/50 transition-all">
-                VIEW FULL DETAILS
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </>
   )
