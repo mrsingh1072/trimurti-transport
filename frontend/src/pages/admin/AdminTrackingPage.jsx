@@ -41,12 +41,9 @@ export default function AdminTrackingPage() {
   }
 
   const [savedLocations, setSavedLocations] = useState([
-    { id: 1, name: 'Head Office', address: 'Trimurti Transport Main Office, City Center', icon: '🏢', lat: 28.6139, lng: 77.2090, status: 'active' },
-    { id: 2, name: 'Vehicle Yard', address: 'Parking & Service Yard, Industrial Zone', icon: '🛻', lat: 28.5350, lng: 77.3910, status: 'active' },
-    { id: 3, name: 'Pickup Point', address: 'Main Customer Pickup Zone, Downtown', icon: '🚌', lat: 28.6305, lng: 77.2295, status: 'active' },
-    { id: 4, name: 'Airport Pickup', address: 'Airport Entry Gate Terminal', icon: '✈️', lat: 28.5562, lng: 77.1000, status: 'active' },
-    { id: 5, name: 'Railway Station', address: 'Station Gate & Parking Area', icon: '🚉', lat: 28.6428, lng: 77.2197, status: 'active' },
-    { id: 6, name: 'Hotel Delivery', address: 'Popular Hotels & Tourism Hub', icon: '🏨', lat: 28.6139, lng: 77.2300, status: 'active' }
+    { id: 1, name: 'Head Office', address: 'Trimurti Transport Main Office, Bihta Bhojpur, Bihar, 802209', icon: '🏢', lat: 28.6139, lng: 77.2090, status: 'active' },
+    { id: 2, name: 'Vehicle Yard', address: 'Parking & Service Yard, Sagar 1 Bricks, Bihta Bhojpr, Bihar, 802209', icon: '🛻', lat: 28.5350, lng: 77.3910, status: 'active' },
+    { id: 3, name: 'Hotel Delivery', address: 'Trimurti Line Hotel & Family Resturant, Bihta Bhojpur, Bihar, 802209', icon: '🏨', lat: 28.6139, lng: 77.2300, status: 'active' }
   ])
   const [showAddLocation, setShowAddLocation] = useState(false)
   const [editingLocation, setEditingLocation] = useState(null)
