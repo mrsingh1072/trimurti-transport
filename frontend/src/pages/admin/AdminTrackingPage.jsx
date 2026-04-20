@@ -136,9 +136,17 @@ export default function AdminTrackingPage() {
   useEffect(() => { if (refetching) fetchVehicles() }, [refetching, fetchVehicles])
 
   const handleVehicleSelect = useCallback((vehicle) => {
-    setSelectedVehicle(vehicle)
-    focusOnVehicle(vehicle)
-  }, [focusOnVehicle])
+    console.log('🔍 handleVehicleSelect called with:', vehicle.vehicleName, 'ID:', vehicle._id, 'Current selected:', selectedVehicle?.vehicleName)
+    // Toggle: if same vehicle clicked, deselect; otherwise select
+    if (selectedVehicle?._id === vehicle._id) {
+      console.log('⬆️ Toggling OFF - same vehicle')
+      setSelectedVehicle(null)
+    } else {
+      console.log('⬇️ Toggling ON - new vehicle or first select')
+      setSelectedVehicle(vehicle)
+      focusOnVehicle(vehicle)
+    }
+  }, [selectedVehicle, focusOnVehicle])
 
   const stats = {
     total: vehicles.length,
@@ -415,8 +423,8 @@ export default function AdminTrackingPage() {
                 </p>
               </div>
             ) : (
-              <div className="p-3 space-y-2">
-                {searchedVehicles.map(vehicle => {
+              <div className="p-0 space-y-0 w-full">
+                {searchedVehicles.map((vehicle, index) => {
                   const statusConfig = {
                     waiting: { icon: '🟡', label: 'Waiting', color: 'from-yellow-500/20 to-yellow-600/10', border: 'border-yellow-500/30', text: 'text-yellow-400' },
                     active: { icon: '🟢', label: 'Active', color: 'from-emerald-500/20 to-emerald-600/10', border: 'border-emerald-500/30', text: 'text-emerald-400' },
@@ -424,12 +432,19 @@ export default function AdminTrackingPage() {
                   }
                   const status = vehicle.status || 'waiting'
                   const config = statusConfig[status] || statusConfig.waiting
-                  const isSelected = selectedVehicle?.bookingId === vehicle.bookingId || selectedVehicle?._id === vehicle._id
+                  // Use _id for reliable comparison, fallback to index
+                  const vehicleId = vehicle._id || vehicle.bookingId || `vehicle-${index}`
+                  const selectedId = selectedVehicle?._id || selectedVehicle?.bookingId
+                  const isSelected = vehicleId === selectedId
+                  
+                  if (isSelected) {
+                    console.log('✅ Rendering EXPANDED for:', vehicle.vehicleName, 'vehicleId:', vehicleId, 'selectedId:', selectedId)
+                  }
                   
                   return (
                     <div key={vehicle.bookingId || vehicle._id}>
                       {/* Vehicle Card Header */}
-                      <button onClick={() => { handleVehicleSelect(vehicle); setMobileOpen(false); }} className={`w-full p-3 rounded-lg text-left transition-all border vehicle-card-hover ${isSelected ? `bg-gradient-to-r ${config.color} ${config.border} shadow-lg shadow-emerald-500/20 ring-2 ring-emerald-500/50` : `bg-slate-900/30 border-slate-700/30 hover:border-slate-600/50 hover:bg-slate-900/50`}`}>
+                      <button onClick={() => { console.log('🖱️ Clicked vehicle:', vehicle.vehicleName); handleVehicleSelect(vehicle); setMobileOpen(false); }} className={`w-full p-3 rounded-lg text-left transition-all border vehicle-card-hover ${isSelected ? `bg-gradient-to-r ${config.color} ${config.border} shadow-lg shadow-emerald-500/20 ring-2 ring-emerald-500/50` : `bg-slate-900/30 border-slate-700/30 hover:border-slate-600/50 hover:bg-slate-900/50`}`}>
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1.5">
@@ -450,40 +465,57 @@ export default function AdminTrackingPage() {
 
                       {/* Expanded Details - Accordion */}
                       {isSelected && (
-                        <div className="mt-2 ml-0 mr-0 p-4 rounded-lg bg-slate-900/40 border border-emerald-500/30 space-y-3 animate-in slide-in-from-top-2 duration-200">
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
-                              <p className="text-xs text-slate-400 mb-1 font-semibold">Registration</p>
+                        <div className="mt-0 ml-0 mr-0 p-5 rounded-lg bg-slate-800/60 border-2 border-emerald-500 min-h-[320px] w-full overflow-visible box-border" style={{border: '3px solid red'}}>
+                          <div style={{color: 'red', fontWeight: 'bold', marginBottom: '12px'}}>DEBUG: EXPANDED SHOWING FOR {vehicle.vehicleName}</div>
+                          {/* Header Section */}
+                          <div className="pb-4 mb-4 border-b border-slate-600">
+                            <div className="flex items-start justify-between gap-3 mb-2">
+                              <div className="flex-1">
+                                <p className="text-base font-bold text-white">{vehicle.vehicleName || 'Vehicle'}</p>
+                                <p className="text-sm text-slate-300 mt-1.5">👤 {vehicle.customerName || 'Unknown'}</p>
+                              </div>
+                              <span className={`text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap ${config.text} bg-slate-900/40`}>
+                                {config.label}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Details Section */}
+                          <div className="space-y-5">
+                            <div>
+                              <p className="text-xs text-slate-300 font-semibold mb-2 uppercase tracking-wider">Registration</p>
                               <p className="font-mono font-bold text-white text-sm">{vehicle.registrationNumber || 'N/A'}</p>
                             </div>
-                            <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
-                              <p className="text-xs text-slate-400 mb-1 font-semibold">Speed</p>
+
+                            <div>
+                              <p className="text-xs text-slate-300 font-semibold mb-2 uppercase tracking-wider">Speed</p>
                               <p className="font-bold text-emerald-400 text-sm">{vehicle.currentSpeed?.toFixed(1) || '0'} km/h</p>
                             </div>
-                          </div>
 
-                          <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
-                            <p className="text-xs text-slate-400 mb-1 font-semibold">Coordinates</p>
-                            <p className="font-mono text-white text-xs">{vehicle.latitude?.toFixed(4) || 'N/A'}, {vehicle.longitude?.toFixed(4) || 'N/A'}</p>
-                          </div>
-
-                          <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
-                            <p className="text-xs text-slate-400 mb-1 font-semibold">Last Update</p>
-                            <p className="text-white text-xs font-semibold text-emerald-400">{getTimeSince(vehicle.lastUpdate)}</p>
-                          </div>
-
-                          {vehicle.driverName && (
-                            <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
-                              <p className="text-xs text-slate-400 mb-1 font-semibold">Driver</p>
-                              <p className="text-white text-sm font-semibold">{vehicle.driverName}</p>
+                            <div>
+                              <p className="text-xs text-slate-300 font-semibold mb-2 uppercase tracking-wider">Coordinates</p>
+                              <p className="font-mono text-white text-xs">{vehicle.latitude?.toFixed(4) || 'N/A'}, {vehicle.longitude?.toFixed(4) || 'N/A'}</p>
                             </div>
-                          )}
 
-                          <div className="flex gap-2 pt-2">
-                            <button className="flex-1 px-3 py-2 text-xs bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-emerald-500/50 transition-all">
+                            <div>
+                              <p className="text-xs text-slate-300 font-semibold mb-2 uppercase tracking-wider">Last Update</p>
+                              <p className="text-white text-xs font-semibold text-emerald-400">{getTimeSince(vehicle.lastUpdate)}</p>
+                            </div>
+
+                            {vehicle.driverName && (
+                              <div>
+                                <p className="text-xs text-slate-300 font-semibold mb-2 uppercase tracking-wider">Driver</p>
+                                <p className="text-white text-sm font-semibold">{vehicle.driverName}</p>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex gap-2 pt-5 mt-5 border-t border-slate-600">
+                            <button className="flex-1 px-4 py-3 text-xs bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-emerald-500/50 transition-all">
                               View Map
                             </button>
-                            <button onClick={() => setSelectedVehicle(null)} className="flex-1 px-3 py-2 text-xs bg-slate-700/50 hover:bg-slate-700 text-slate-300 font-semibold rounded-lg transition-all">
+                            <button onClick={() => setSelectedVehicle(null)} className="flex-1 px-4 py-3 text-xs bg-slate-700/50 hover:bg-slate-700 text-slate-300 font-semibold rounded-lg transition-all">
                               Collapse
                             </button>
                           </div>

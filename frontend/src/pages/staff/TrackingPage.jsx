@@ -409,7 +409,7 @@ export default function StaffTrackingPage() {
                 </p>
               </div>
             ) : (
-              <div className="p-3 space-y-2">
+              <div className="p-0 space-y-0 w-full">
                 {searchedVehicles.map(vehicle => {
                   const statusConfig = {
                     waiting: { icon: '🟡', label: 'Waiting', color: 'from-yellow-500/20 to-yellow-600/10', border: 'border-yellow-500/30', text: 'text-yellow-400' },
@@ -444,40 +444,56 @@ export default function StaffTrackingPage() {
 
                       {/* Expanded Details - Accordion */}
                       {isSelected && (
-                        <div className="mt-2 ml-0 mr-0 p-4 rounded-lg bg-slate-900/40 border border-emerald-500/30 space-y-3 animate-in slide-in-from-top-2 duration-200">
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
-                              <p className="text-xs text-slate-400 mb-1 font-semibold">Registration</p>
+                        <div className="mt-0 ml-0 mr-0 p-5 rounded-none bg-slate-800/60 border-t-2 border-l-2 border-r-2 border-b-2 border-emerald-500 animate-in slide-in-from-top-2 duration-200 min-h-[320px] w-full overflow-visible box-border" style={{border: '3px solid red'}}>
+                          {/* Header Section */}
+                          <div className="pb-4 mb-4 border-b border-slate-600">
+                            <div className="flex items-start justify-between gap-3 mb-2">
+                              <div className="flex-1">
+                                <p className="text-base font-bold text-white">{vehicle.vehicleName || 'Vehicle'}</p>
+                                <p className="text-sm text-slate-300 mt-1.5">👤 {vehicle.customerName || 'Unknown'}</p>
+                              </div>
+                              <span className={`text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap ${config.text} bg-slate-900/40`}>
+                                {config.label}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Details Section */}
+                          <div className="space-y-5">
+                            <div>
+                              <p className="text-xs text-slate-300 font-semibold mb-2 uppercase tracking-wider">Registration</p>
                               <p className="font-mono font-bold text-white text-sm">{vehicle.registrationNumber || 'N/A'}</p>
                             </div>
-                            <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
-                              <p className="text-xs text-slate-400 mb-1 font-semibold">Speed</p>
+
+                            <div>
+                              <p className="text-xs text-slate-300 font-semibold mb-2 uppercase tracking-wider">Speed</p>
                               <p className="font-bold text-emerald-400 text-sm">{vehicle.currentSpeed?.toFixed(1) || '0'} km/h</p>
                             </div>
-                          </div>
 
-                          <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
-                            <p className="text-xs text-slate-400 mb-1 font-semibold">Coordinates</p>
-                            <p className="font-mono text-white text-xs">{vehicle.latitude?.toFixed(4) || 'N/A'}, {vehicle.longitude?.toFixed(4) || 'N/A'}</p>
-                          </div>
-
-                          <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
-                            <p className="text-xs text-slate-400 mb-1 font-semibold">Last Update</p>
-                            <p className="text-white text-xs font-semibold text-emerald-400">{getTimeSince(vehicle.lastUpdate)}</p>
-                          </div>
-
-                          {vehicle.driverName && (
-                            <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
-                              <p className="text-xs text-slate-400 mb-1 font-semibold">Driver</p>
-                              <p className="text-white text-sm font-semibold">{vehicle.driverName}</p>
+                            <div>
+                              <p className="text-xs text-slate-300 font-semibold mb-2 uppercase tracking-wider">Coordinates</p>
+                              <p className="font-mono text-white text-xs">{vehicle.latitude?.toFixed(4) || 'N/A'}, {vehicle.longitude?.toFixed(4) || 'N/A'}</p>
                             </div>
-                          )}
 
-                          <div className="flex gap-2 pt-2">
-                            <button className="flex-1 px-3 py-2 text-xs bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-emerald-500/50 transition-all">
+                            <div>
+                              <p className="text-xs text-slate-300 font-semibold mb-2 uppercase tracking-wider">Last Update</p>
+                              <p className="text-white text-xs font-semibold text-emerald-400">{getTimeSince(vehicle.lastUpdate)}</p>
+                            </div>
+
+                            {vehicle.driverName && (
+                              <div>
+                                <p className="text-xs text-slate-300 font-semibold mb-2 uppercase tracking-wider">Driver</p>
+                                <p className="text-white text-sm font-semibold">{vehicle.driverName}</p>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex gap-2 pt-5 mt-5 border-t border-slate-600">
+                            <button className="flex-1 px-4 py-3 text-xs bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-emerald-500/50 transition-all">
                               View Map
                             </button>
-                            <button onClick={() => setSelectedVehicle(null)} className="flex-1 px-3 py-2 text-xs bg-slate-700/50 hover:bg-slate-700 text-slate-300 font-semibold rounded-lg transition-all">
+                            <button onClick={() => setSelectedVehicle(null)} className="flex-1 px-4 py-3 text-xs bg-slate-700/50 hover:bg-slate-700 text-slate-300 font-semibold rounded-lg transition-all">
                               Collapse
                             </button>
                           </div>
