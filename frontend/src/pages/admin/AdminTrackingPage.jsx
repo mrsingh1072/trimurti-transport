@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import { getLiveTracking } from '../../services/api'
 import EnhancedLiveTrackingMap from '../../components/EnhancedLiveTrackingMap'
 import AdminLayout from '../../components/AdminLayout'
-import { AlertCircle, Search, MapPin, ChevronRight, ChevronDown, Menu, X, Zap, Navigation, Home, Plus, Edit, Trash2 } from 'lucide-react'
+import { AlertCircle, Search, MapPin, ChevronRight, ChevronDown, Menu, X, Zap, Navigation, Home, AlertTriangle } from 'lucide-react'
 
 /**
  * Admin Live Vehicle Tracking Page - Premium SaaS Dashboard
@@ -40,14 +40,7 @@ export default function AdminTrackingPage() {
     return `${Math.floor(seconds / 3600)}h ago`
   }
 
-  const [savedLocations, setSavedLocations] = useState([
-    { id: 1, name: 'Head Office', address: 'Trimurti Transport Main Office, Bihta Bhojpur, Bihar, 802209', icon: '🏢', lat: 28.6139, lng: 77.2090, status: 'active' },
-    { id: 2, name: 'Vehicle Yard', address: 'Parking & Service Yard, Sagar 1 Bricks, Bihta Bhojpr, Bihar, 802209', icon: '🛻', lat: 28.5350, lng: 77.3910, status: 'active' },
-    { id: 3, name: 'Hotel Delivery', address: 'Trimurti Line Hotel & Family Resturant, Bihta Bhojpur, Bihar, 802209', icon: '🏨', lat: 28.6139, lng: 77.2300, status: 'active' }
-  ])
-  const [showAddLocation, setShowAddLocation] = useState(false)
-  const [editingLocation, setEditingLocation] = useState(null)
-  const [newLocation, setNewLocation] = useState({ name: '', address: '', icon: '📍', lat: 28.6139, lng: 77.2090 })
+  // Location state removed - now using cleaner operational dashboard
 
   // Focus map on vehicle when selected
   const focusOnVehicle = useCallback((vehicle) => {
@@ -61,39 +54,7 @@ export default function AdminTrackingPage() {
     }
   }, [])
 
-  // Center map on location
-  const centerMapOnLocation = useCallback((lat, lng) => {
-    if (mapContainerRef.current && mapContainerRef.current.querySelector('.leaflet-container')) {
-      const map = mapContainerRef.current.leafletMap
-      if (map) {
-        map.setView([lat, lng], 15)
-      }
-    }
-  }, [])
 
-  // Add new location
-  const handleAddLocation = useCallback(() => {
-    if (newLocation.name && newLocation.address) {
-      const id = Math.max(...savedLocations.map(l => l.id || 0), 0) + 1
-      setSavedLocations([...savedLocations, { ...newLocation, id, status: 'active' }])
-      setNewLocation({ name: '', address: '', icon: '📍', lat: 28.6139, lng: 77.2090 })
-      setShowAddLocation(false)
-    }
-  }, [newLocation, savedLocations])
-
-  // Delete location
-  const handleDeleteLocation = useCallback((id) => {
-    setSavedLocations(savedLocations.filter(l => l.id !== id))
-    setEditingLocation(null)
-  }, [savedLocations])
-
-  // Update location
-  const handleUpdateLocation = useCallback(() => {
-    if (editingLocation && editingLocation.name && editingLocation.address) {
-      setSavedLocations(savedLocations.map(l => l.id === editingLocation.id ? editingLocation : l))
-      setEditingLocation(null)
-    }
-  }, [editingLocation, savedLocations])
 
   const fetchVehicles = useCallback(async () => {
     try {
@@ -254,139 +215,68 @@ export default function AdminTrackingPage() {
             </div>
           </div>
 
-          {/* Key Business Locations */}
-          {!error && (
-            <div className="px-4 py-3 border-b border-slate-700/50 flex-shrink-0 max-h-72 overflow-y-auto scrollbar-thin">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-bold text-emerald-400 tracking-wider">📍 BUSINESS LOCATIONS</p>
-                <button 
-                  onClick={() => setShowAddLocation(!showAddLocation)}
-                  className="p-1.5 hover:bg-emerald-500/20 rounded-lg transition-all text-emerald-400 hover:text-emerald-300"
-                  title="Add location"
-                >
-                  <Plus size={16} />
-                </button>
-              </div>
-
-              {/* Add Location Form */}
-              {showAddLocation && (
-                <div className="mb-3 p-3 bg-slate-900/50 border border-emerald-500/30 rounded-lg space-y-2">
-                  <input 
-                    type="text" 
-                    placeholder="Location name" 
-                    value={newLocation.name}
-                    onChange={(e) => setNewLocation({...newLocation, name: e.target.value})}
-                    className="w-full px-2 py-1.5 text-xs bg-slate-900/30 border border-slate-700 rounded text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                  />
-                  <input 
-                    type="text" 
-                    placeholder="Address" 
-                    value={newLocation.address}
-                    onChange={(e) => setNewLocation({...newLocation, address: e.target.value})}
-                    className="w-full px-2 py-1.5 text-xs bg-slate-900/30 border border-slate-700 rounded text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                  />
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={handleAddLocation}
-                      className="flex-1 px-2 py-1.5 text-xs bg-emerald-500/80 hover:bg-emerald-500 text-white font-semibold rounded transition-all"
-                    >
-                      Save
-                    </button>
-                    <button 
-                      onClick={() => setShowAddLocation(false)}
-                      className="flex-1 px-2 py-1.5 text-xs bg-slate-700/50 hover:bg-slate-700 text-slate-300 font-semibold rounded transition-all"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Location Cards */}
-              <div className="space-y-2">
-                {savedLocations.map((loc) => (
-                  <div 
-                    key={loc.id}
-                    className="group relative p-3 rounded-lg bg-slate-900/30 hover:bg-slate-900/50 border border-slate-700/30 hover:border-emerald-500/50 transition-all cursor-pointer"
-                  >
-                    {/* Status indicator */}
-                    <div className="absolute top-2 right-2 flex items-center gap-1">
-                      <div className={`w-2 h-2 rounded-full animate-pulse ${loc.status === 'active' ? 'bg-emerald-500' : 'bg-slate-500'}`}></div>
-                    </div>
-
-                    {/* Location info - clickable to center map */}
-                    <button
-                      onClick={() => centerMapOnLocation(loc.lat, loc.lng)}
-                      className="w-full text-left"
-                    >
-                      <div className="flex items-start gap-2 mb-2">
-                        <span className="text-lg flex-shrink-0">{loc.icon}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-white group-hover:text-emerald-300 transition-colors">{loc.name}</p>
-                          <p className="text-xs text-slate-400 truncate">{loc.address}</p>
-                        </div>
-                      </div>
-                    </button>
-
-                    {/* Admin controls */}
-                    <div className="flex items-center gap-2 pt-2 border-t border-slate-700/30 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => setEditingLocation(loc)}
-                        className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs bg-slate-700/50 hover:bg-slate-700 text-slate-300 rounded transition-all"
-                        title="Edit"
-                      >
-                        <Edit size={14} />
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteLocation(loc.id)}
-                        className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded transition-all"
-                        title="Delete"
-                      >
-                        <Trash2 size={14} />
-                        Delete
-                      </button>
+          {/* Operational Dashboard */}
+          <div className="px-4 py-4 border-b border-slate-700/50 flex-shrink-0 space-y-4">
+            {/* System Status Panel */}
+            <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/30 rounded-lg p-4 border border-slate-700/50 space-y-3">
+              <p className="text-xs font-bold text-slate-400 tracking-widest mb-3">⚙️ SYSTEM STATUS</p>
+              
+              {/* Status Grid */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-slate-900/40 rounded-lg p-3 border border-emerald-500/20">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-2xl font-black text-emerald-400">{stats.active}</p>
+                      <p className="text-xs text-emerald-300 font-semibold mt-1">🟢 Active</p>
                     </div>
                   </div>
-                ))}
-              </div>
-
-              {/* Edit Location Modal */}
-              {editingLocation && (
-                <div className="mt-3 p-3 bg-slate-900/50 border border-blue-500/30 rounded-lg space-y-2">
-                  <p className="text-xs font-semibold text-blue-400">Edit Location</p>
-                  <input 
-                    type="text" 
-                    placeholder="Location name" 
-                    value={editingLocation.name}
-                    onChange={(e) => setEditingLocation({...editingLocation, name: e.target.value})}
-                    className="w-full px-2 py-1.5 text-xs bg-slate-900/30 border border-slate-700 rounded text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  />
-                  <input 
-                    type="text" 
-                    placeholder="Address" 
-                    value={editingLocation.address}
-                    onChange={(e) => setEditingLocation({...editingLocation, address: e.target.value})}
-                    className="w-full px-2 py-1.5 text-xs bg-slate-900/30 border border-slate-700 rounded text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  />
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={handleUpdateLocation}
-                      className="flex-1 px-2 py-1.5 text-xs bg-blue-500/80 hover:bg-blue-500 text-white font-semibold rounded transition-all"
-                    >
-                      Save
-                    </button>
-                    <button 
-                      onClick={() => setEditingLocation(null)}
-                      className="flex-1 px-2 py-1.5 text-xs bg-slate-700/50 hover:bg-slate-700 text-slate-300 font-semibold rounded transition-all"
-                    >
-                      Cancel
-                    </button>
+                </div>
+                <div className="bg-slate-900/40 rounded-lg p-3 border border-yellow-500/20">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-2xl font-black text-yellow-400">{stats.waiting}</p>
+                      <p className="text-xs text-yellow-300 font-semibold mt-1">🟡 Waiting</p>
+                    </div>
                   </div>
                 </div>
-              )}
+              </div>
+
+              {/* Offline Status */}
+              <div className="bg-slate-900/40 rounded-lg p-3 border border-slate-600/30 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-slate-300">🔴 Offline</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{stats.offline} vehicles</p>
+                </div>
+                <p className="text-lg font-black text-slate-400">{stats.offline}</p>
+              </div>
             </div>
-          )}
+
+            {/* Last Sync & Alerts */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between bg-slate-900/30 rounded-lg p-2.5 border border-slate-700/30">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                  <p className="text-xs text-slate-300 font-semibold">Last Sync</p>
+                </div>
+                <p className="text-xs font-mono text-emerald-400">{getTimeSince(lastUpdateRef.current)}</p>
+              </div>
+
+              {/* Recent Alerts */}
+              <div className="bg-slate-900/30 rounded-lg p-2.5 border border-slate-700/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle size={16} className="text-amber-400" />
+                  <p className="text-xs font-semibold text-slate-300">Alerts</p>
+                </div>
+                <div className="text-xs text-slate-400 pl-6">
+                  {vehicles.length > 0 ? (
+                    <p>All systems operational</p>
+                  ) : (
+                    <p>No active vehicles</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Vehicle List */}
           <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-900">
