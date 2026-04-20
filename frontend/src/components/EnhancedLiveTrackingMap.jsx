@@ -232,47 +232,78 @@ export default function EnhancedLiveTrackingMap({
                 },
               }}
             >
-              <Popup className="custom-popup" maxWidth={300}>
-                <div className="p-3 text-sm space-y-2">
-                  <div className="space-y-1">
-                    <p className="font-bold text-gray-900 text-base">
+              <Popup className="custom-popup vehicle-popup" maxWidth={320} minWidth={300}>
+                <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 rounded-lg p-4 space-y-3 shadow-2xl border border-slate-700/50">
+                  {/* Vehicle Header */}
+                  <div className="space-y-1.5">
+                    <p className="font-bold text-white text-base leading-tight">
                       {vehicle.vehicleName || vehicle.vehicle?.model || 'Vehicle'}
                     </p>
-                    <p className="text-gray-600 font-mono text-xs">
+                    <p className="text-slate-300 font-mono text-xs bg-slate-900/50 px-2 py-1 rounded inline-block">
                       {vehicle.registrationNumber || vehicle.vehicle?.registrationNumber || 'N/A'}
                     </p>
                   </div>
-                  <div className="border-t pt-2">
-                    <p className="font-semibold text-gray-900">
-                      👤 {vehicle.customerName || vehicle.driverName || 'Unknown'}
-                    </p>
-                    {vehicle.userName && (
-                      <p className="text-xs text-gray-600">
-                        Driver: {vehicle.userName}
+
+                  {/* Customer & Booking Info */}
+                  <div className="border-t border-slate-700/50 pt-2 space-y-1.5">
+                    <div>
+                      <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Customer</p>
+                      <p className="font-semibold text-white text-sm">
+                        {vehicle.customerName || vehicle.driverName || 'Unknown'}
                       </p>
+                    </div>
+                    {vehicle.bookingType && (
+                      <div>
+                        <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Booking Type</p>
+                        <p className="text-emerald-400 font-semibold text-sm capitalize">{vehicle.bookingType}</p>
+                      </div>
                     )}
                   </div>
-                  <div className="text-xs space-y-1">
-                    <p className="text-gray-600">
-                      Status: <span className={`font-bold ${
+
+                  {/* Status & Speed */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-slate-800/50 rounded-lg p-2 border border-slate-700/30">
+                      <p className="text-slate-400 text-xs font-semibold mb-1">Status</p>
+                      <p className={`font-bold text-sm ${
                         status === 'active' || status === 'live'
-                          ? 'text-green-600'
+                          ? 'text-emerald-400'
                           : status === 'waiting'
-                          ? 'text-yellow-600'
-                          : 'text-gray-600'
+                          ? 'text-yellow-400'
+                          : 'text-slate-400'
                       }`}>
-                        {status === 'active' || status === 'live' ? '🟢 Active' : status === 'waiting' ? '🟡 Waiting' : '⚪ Idle'}
-                      </span>
-                    </p>
-                    {vehicle.currentSpeed !== undefined && (
-                      <p className="text-gray-600">
-                        Speed: <span className="font-semibold">{vehicle.currentSpeed?.toFixed(1)} km/h</span>
+                        {status === 'active' || status === 'live' ? '🟢 Active' : status === 'waiting' ? '🟡 Waiting' : '⚪ Offline'}
                       </p>
+                    </div>
+                    <div className="bg-slate-800/50 rounded-lg p-2 border border-slate-700/30">
+                      <p className="text-slate-400 text-xs font-semibold mb-1">Speed</p>
+                      <p className="font-bold text-emerald-400 text-sm">
+                        {vehicle.currentSpeed !== undefined ? `${vehicle.currentSpeed?.toFixed(1)} km/h` : 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Location & Last Update */}
+                  <div className="border-t border-slate-700/50 pt-2 space-y-2">
+                    <div>
+                      <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Location</p>
+                      <p className="text-slate-300 font-mono text-xs break-all">
+                        {coords.lat.toFixed(6)}, {coords.lng.toFixed(6)}
+                      </p>
+                    </div>
+                    {vehicle.lastUpdate && (
+                      <div>
+                        <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Last Updated</p>
+                        <p className="text-emerald-400 text-xs font-semibold">
+                          {new Date(vehicle.lastUpdate).toLocaleTimeString()}
+                        </p>
+                      </div>
                     )}
                   </div>
-                  <div className="pt-2 border-t text-xs text-gray-500">
-                    <p>📍 {coords.lat.toFixed(6)}, {coords.lng.toFixed(6)}</p>
-                  </div>
+
+                  {/* Open Booking Button */}
+                  <button className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-semibold py-2 px-3 rounded-lg transition-all shadow-lg text-sm mt-1">
+                    Open Booking
+                  </button>
                 </div>
               </Popup>
             </Marker>
