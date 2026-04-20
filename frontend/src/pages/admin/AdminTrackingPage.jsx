@@ -25,9 +25,12 @@ export default function AdminTrackingPage() {
   const [refetching, setRefetching] = useState(false)
   const [activeTab, setActiveTab] = useState('daily')
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [cardPosition, setCardPosition] = useState({ top: 'auto', right: 'auto', left: 'auto', bottom: 'auto' })
   const autoSelectDoneRef = useRef(false)
   const pollingIntervalRef = useRef(null)
   const lastUpdateRef = useRef(Date.now())
+  const mapContainerRef = useRef(null)
+  const detailCardRef = useRef(null)
 
   // Calculate time since last update for real-time feel
   const getTimeSince = (timestamp) => {
@@ -44,6 +47,68 @@ export default function AdminTrackingPage() {
     { name: 'Depot', address: '456 Logistics Hub, Warehouse', icon: '🏭' },
     { name: 'Terminal', address: 'Main Station, Transit Point', icon: '🚩' }
   ])
+
+  // Smart positioning for detail card - keeps it within map bounds
+  const calculateCardPosition = useCallback(() => {
+    if (!mapContainerRef.current || !detailCardRef.current) return
+    
+    const mapBounds = mapContainerRef.current.getBoundingClientRect()
+    const cardBounds = detailCardRef.current.getBoundingClientRect()
+    
+    const cardWidth = 320 // md desktop width
+    const cardHeight = 280 // approximate height
+    const padding = 16 // distance from edges
+    
+    let newPosition = { top: 'auto', right: 'auto', left: 'auto', bottom: 'auto' }
+    
+    // Desktop: position relative to map container
+    if (window.innerWidth >= 768) {
+      // Default: try to position on right side with some spacing
+      const rightSpace = mapBounds.right - (cardBounds.left || mapBounds.right - cardWidth - padding)
+      const leftSpace = (cardBounds.left || mapBounds.left) - mapBounds.left
+      
+      // Check if card fits on the right side
+      if (rightSpace > cardWidth + padding) {
+        newPosition.right = `${padding}px`
+        newPosition.left = 'auto'
+      } else if (leftSpace > cardWidth + padding) {
+        // Try left side if right doesn't fit
+        newPosition.left = `${padding}px`
+        newPosition.right = 'auto'
+      } else {
+        // Default to right with constraint
+        newPosition.right = `${padding}px`
+        newPosition.left = 'auto'
+      }
+      
+      // Vertical positioning - prefer top, adjust if needed
+      if (mapBounds.top + cardHeight + padding < window.innerHeight) {
+        newPosition.top = `${padding}px`
+        newPosition.bottom = 'auto'
+      } else {
+        newPosition.bottom = `${padding}px`
+        newPosition.top = 'auto'
+      }
+    }
+    
+    setCardPosition(newPosition)
+  }, [])
+
+  // Update card position when selected vehicle changes
+  useEffect(() => {
+    if (selectedVehicle) {
+      setTimeout(calculateCardPosition, 100) // Wait for card to render
+    }
+  }, [selectedVehicle, calculateCardPosition])
+
+  // Recalculate on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (selectedVehicle) calculateCardPosition()
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [selectedVehicle, calculateCardPosition])
 
   const fetchVehicles = useCallback(async () => {
     try {
@@ -116,11 +181,13 @@ export default function AdminTrackingPage() {
         @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes slideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.4); } 50% { box-shadow: 0 0 40px rgba(34, 197, 94, 0.7); } }
         @keyframes float-up { 0% { transform: translateY(0px); } 50% { transform: translateY(-8px); } 100% { transform: translateY(0px); } }
         @keyframes slide-in { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         .pulse-ring::before { content: ''; position: absolute; border-radius: 50%; background: rgba(34, 197, 94, 0.3); animation: pulse-ring 2s ease-out infinite; }
         .bottom-sheet { animation: slideUp 0.3s ease-out; }
+        .detail-card-popup { animation: popIn 0.3s ease-out; }
         .active-vehicle { animation: pulse-glow 2s ease-in-out infinite; }
         .vehicle-card-hover { transition: all 0.2s ease; }
         .vehicle-card-hover:hover { transform: translateY(-2px); }
@@ -303,7 +370,7 @@ export default function AdminTrackingPage() {
         </div>
 
         {/* MAP CONTAINER */}
-        <div className={`flex-1 relative overflow-hidden map-container ${mobileOpen ? '' : 'visible md:visible'}`}>
+        <div ref={mapContainerRef} className={`flex-1 relative overflow-hidden map-container ${mobileOpen ? '' : 'visible md:visible'}`}>
           {/* Mobile Toggle Button */}
           <button onClick={() => setMobileOpen(true)} className="absolute top-4 left-4 md:hidden z-40 p-3 bg-slate-800/80 backdrop-blur-sm rounded-lg shadow-lg hover:bg-slate-700/80 transition-all border border-slate-700/50">
             <Menu size={24} className="text-slate-200" />
@@ -353,11 +420,21 @@ export default function AdminTrackingPage() {
           )}
         </div>
 
-        {/* BOTTOM SHEET - Vehicle Details */}
-        {selectedVehicle && (
-          <div className={`fixed bottom-0 left-0 right-0 md:left-96 md:bottom-6 md:right-6 md:max-w-sm bg-slate-800/95 backdrop-blur-md rounded-t-2xl md:rounded-2xl shadow-2xl z-50 bottom-sheet border-t md:border border-slate-700/50 ${mobileOpen ? 'hidden md:block' : ''}`} style={{ height: 'auto', maxHeight: 'auto' }}>
-            <div className="flex justify-center pt-3 pb-1 md:hidden"><div className="w-12 h-1 bg-slate-700 rounded-full"></div></div>
-            <div className="p-4 md:p-6">
+        {/* VEHICLE DETAIL CARD - DESKTOP */}
+        {selectedVehicle && !mobileOpen && (
+          <div 
+            ref={detailCardRef}
+            className="hidden md:block absolute z-40 w-80 detail-card-popup"
+            style={{
+              top: cardPosition.top,
+              right: cardPosition.right,
+              left: cardPosition.left,
+              bottom: cardPosition.bottom,
+              maxHeight: '85vh',
+              overflow: 'auto'
+            }}
+          >
+            <div className="bg-slate-800/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-700/50 p-6">
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow-lg shadow-emerald-500/50">
                   {selectedVehicle.driverName?.charAt(0) || 'V'}
@@ -379,6 +456,38 @@ export default function AdminTrackingPage() {
                 </div>
               </div>
               <button className="w-full px-4 py-3 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-emerald-500/50 transition-all hover:scale-105">
+                VIEW FULL DETAILS
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* VEHICLE DETAIL CARD - MOBILE BOTTOM SHEET */}
+        {selectedVehicle && mobileOpen && (
+          <div className={`md:hidden fixed bottom-0 left-0 right-0 bg-slate-800/95 backdrop-blur-md rounded-t-2xl shadow-2xl z-40 bottom-sheet border-t border-slate-700/50`} style={{ height: 'auto', maxHeight: '70vh', overflow: 'auto' }}>
+            <div className="flex justify-center pt-3 pb-1"><div className="w-12 h-1 bg-slate-700 rounded-full"></div></div>
+            <div className="p-4">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow-lg shadow-emerald-500/50">
+                  {selectedVehicle.driverName?.charAt(0) || 'V'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-white">{selectedVehicle.vehicleName || 'Vehicle'}</p>
+                  <p className="text-sm text-emerald-400 font-semibold">👤 {selectedVehicle.driverName || 'Driver'}</p>
+                  <p className="text-xs text-slate-400">Customer: {selectedVehicle.customerName}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
+                  <p className="text-xs text-slate-400 mb-1">Registration</p>
+                  <p className="font-mono font-bold text-white text-sm">{selectedVehicle.registrationNumber || 'N/A'}</p>
+                </div>
+                <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
+                  <p className="text-xs text-slate-400 mb-1">Speed</p>
+                  <p className="font-bold text-emerald-400 text-sm">{selectedVehicle.currentSpeed?.toFixed(1) || '0'} km/h</p>
+                </div>
+              </div>
+              <button className="w-full px-4 py-3 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-emerald-500/50 transition-all">
                 VIEW FULL DETAILS
               </button>
             </div>
