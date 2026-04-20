@@ -11,65 +11,138 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 })
 
-// Custom car icon
-const carIcon = new L.Icon({
-  iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHJ4PSIxMiIgZmlsbD0iIzMzMzMzMyIgb3BhY2l0eT0iMC4xIi8+PGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMjIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzMzMzMzMyIgc3Ryb2tlLXdpZHRoPSIyIiBvcGFjaXR5PSIwLjIiLz48cGF0aCBkPSJNMTQgMThIMzRDMzUuMTA0NiAxOCAzNiAxOC44OTU0IDM2IDIwVjI4QzM2IDI5LjEwNDYgMzUuMTA0NiAzMCAzNCAzMEgxNEMxMi44OTU0IDMwIDEyIDI5LjEwNDYgMTIgMjhWMjBDMTIgMTguODk1NCAxMi44OTU0IDE4IDE0IDE4WiIgZmlsbD0iI0ZGRjEwMCIvPjxyZWN0IHg9IjE4IiB5PSIyMiIgd2lkdGg9IjQiIGhlaWdodD0iNiIgZmlsbD0iIzMzMzMzMyIvPjxyZWN0IHg9IjI2IiB5PSIyMiIgd2lkdGg9IjQiIGhlaWdodD0iNiIgZmlsbD0iIzMzMzMzMyIvPjwvc3ZnPg==',
-  iconSize: [48, 48],
-  iconAnchor: [24, 24],
-  popupAnchor: [0, -24],
-  shadowUrl: undefined,
-})
+/**
+ * Helper function to extract coordinates from vehicle data
+ * Supports multiple field name formats: latitude/longitude or lat/lng
+ * Also checks nested currentLocation object
+ */
+const extractCoordinates = (vehicle) => {
+  if (!vehicle) return null
+
+  let lat = null
+  let lng = null
+
+  // Try direct fields first: latitude/longitude (most common)
+  lat = vehicle.latitude !== undefined ? vehicle.latitude : vehicle.lat
+  lng = vehicle.longitude !== undefined ? vehicle.longitude : vehicle.lng
+
+  // If not found, try nested currentLocation
+  if (lat === undefined || lat === null) {
+    lat = vehicle.currentLocation?.latitude !== undefined 
+      ? vehicle.currentLocation.latitude 
+      : vehicle.currentLocation?.lat
+  }
+  if (lng === undefined || lng === null) {
+    lng = vehicle.currentLocation?.longitude !== undefined 
+      ? vehicle.currentLocation.longitude 
+      : vehicle.currentLocation?.lng
+  }
+
+  // Convert to numbers
+  const latNum = Number(lat)
+  const lngNum = Number(lng)
+
+  // Validate
+  if (isNaN(latNum) || isNaN(lngNum)) {
+    console.warn('🚨 [MARKER] Invalid coordinates for vehicle:', {
+      vehicleId: vehicle._id || vehicle.bookingId,
+      vehicleName: vehicle.vehicleName,
+      originalLat: lat,
+      originalLng: lng,
+      convertedLat: latNum,
+      convertedLng: lngNum
+    })
+    return null
+  }
+
+  console.log('✅ [MARKER] Valid coordinates extracted:', {
+    vehicleName: vehicle.vehicleName,
+    lat: latNum,
+    lng: lngNum
+  })
+
+  return { lat: latNum, lng: lngNum }
+}
+
+// Custom car icon - Green for Active, Yellow for Waiting
+const createVehicleIcon = (status = 'active') => {
+  const color = status === 'waiting' ? '#FEC34D' : '#22C55E' // Yellow for waiting, Green for active
+  
+  // Create SVG with proper color substitution
+  const svgString = `
+    <svg width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="26" cy="26" r="24" fill="${color}" opacity="0.2"/>
+      <circle cx="26" cy="26" r="18" fill="${color}"/>
+      <path d="M16 20H22C22.5523 20 23 20.4477 23 21V26C23 26.5523 22.5523 27 22 27H16C15.4477 27 15 26.5523 15 26V21C15 20.4477 15.4477 20 16 20Z" fill="white" fill-opacity="0.9"/>
+      <path d="M26 20H32C32.5523 20 33 20.4477 33 21V26C33 26.5523 32.5523 27 32 27H26C25.4477 27 25 26.5523 25 26V21C25 20.4477 25.4477 20 26 20Z" fill="white" fill-opacity="0.9"/>
+    </svg>
+  `
+  
+  const base64 = btoa(svgString)
+  
+  return new L.Icon({
+    iconUrl: `data:image/svg+xml;base64,${base64}`,
+    iconSize: [52, 52],
+    iconAnchor: [26, 26],
+    popupAnchor: [0, -26],
+    shadowUrl: undefined,
+  })
+}
+
+// Create vehicle icons
+const activeVehicleIcon = createVehicleIcon('active')
+const waitingVehicleIcon = createVehicleIcon('waiting')
 
 /**
- * Map controller component to handle map interactions
+ * Map controller component to handle map interactions and auto-centering
  */
 function MapController({ selectedVehicle, vehicles }) {
   const map = useMap()
   const hasMovedRef = useRef(false)
 
+  // Handle selected vehicle - zoom and pan to it
   useEffect(() => {
     if (!map || !selectedVehicle) return
 
-    const lat = parseFloat(selectedVehicle.currentLocation?.latitude)
-    const lng = parseFloat(selectedVehicle.currentLocation?.longitude)
-
-    // Validate coordinates
-    if (!isFinite(lat) || !isFinite(lng)) {
-      console.warn('Invalid coordinates for selected vehicle')
+    const coords = extractCoordinates(selectedVehicle)
+    if (!coords) {
+      console.warn('🗺️ [MAP] Cannot zoom to vehicle - no valid coordinates')
       return
     }
 
-    // Smooth animation to selected vehicle
-    console.log(`🎯 Flying to vehicle at ${lat.toFixed(4)}, ${lng.toFixed(4)}`)
-    map.flyTo([lat, lng], 14, { duration: 1 })
-    hasMovedRef.current = true
+    console.log(`🎯 [MAP] Flying to selected vehicle: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`)
+    map.flyTo([coords.lat, coords.lng], 15, { duration: 1 })
   }, [selectedVehicle, map])
 
-  // Initial map center on first vehicle or geolocation
+  // Initial map center on first vehicle with valid coordinates or fallback location
   useEffect(() => {
-    if (!map || hasMovedRef.current || !vehicles.length) return
+    if (!map || hasMovedRef.current) return
 
-    const validVehicles = vehicles.filter(
-      v => isFinite(parseFloat(v.currentLocation?.latitude)) && 
-           isFinite(parseFloat(v.currentLocation?.longitude))
-    )
+    const vehiclesWithCoords = vehicles
+      .map(v => ({ vehicle: v, coords: extractCoordinates(v) }))
+      .filter(item => item.coords !== null)
 
-    if (validVehicles.length > 0) {
-      const firstVehicle = validVehicles[0]
-      const lat = parseFloat(firstVehicle.currentLocation.latitude)
-      const lng = parseFloat(firstVehicle.currentLocation.longitude)
-      
-      console.log(`📍 Centering on first vehicle: ${lat.toFixed(4)}, ${lng.toFixed(4)}`)
-      map.setView([lat, lng], 14)
-      hasMovedRef.current = true
+    if (vehiclesWithCoords.length > 0) {
+      const firstVehicle = vehiclesWithCoords[0]
+      console.log(`📍 [MAP] Centering on first vehicle with coordinates: ${firstVehicle.coords.lat.toFixed(4)}, ${firstVehicle.coords.lng.toFixed(4)}`)
+      map.setView([firstVehicle.coords.lat, firstVehicle.coords.lng], 13)
+    } else {
+      console.log('📍 [MAP] No vehicles with coordinates, using Delhi fallback')
+      map.setView([28.6139, 77.2090], 12)
     }
+
+    hasMovedRef.current = true
   }, [map, vehicles])
 
   return null
 }
 
 /**
- * Enhanced Live Tracking Map with dynamic centering and smooth animations
+ * Enhanced Live Tracking Map with Leaflet
+ * - Renders markers for all active vehicles with valid coordinates
+ * - Supports click-to-zoom from sidebar
+ * - Uses custom vehicle icons with status indicators
+ * - Auto-centers on first vehicle or fallback location
  */
 export default function EnhancedLiveTrackingMap({
   vehicles = [],
@@ -79,6 +152,7 @@ export default function EnhancedLiveTrackingMap({
   loading = false,
 }) {
   const [defaultCenter, setDefaultCenter] = useState([28.6139, 77.2090]) // Delhi fallback
+  const mapRef = useRef(null)
 
   // Get user's current location as secondary fallback
   useEffect(() => {
@@ -86,22 +160,25 @@ export default function EnhancedLiveTrackingMap({
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords
-          console.log('📍 User location detected:', latitude, longitude)
+          console.log('📍 [GEO] User location detected:', latitude, longitude)
           setDefaultCenter([latitude, longitude])
         },
         (error) => {
-          console.log('📍 Using Delhi as fallback location')
-          // Keep Delhi as fallback
+          console.log('📍 [GEO] Using Delhi as fallback location')
         }
       )
     }
   }, [])
 
-  // Filter vehicles with valid coordinates
-  const vehiclesWithLocations = vehicles.filter(
-    v => isFinite(parseFloat(v.currentLocation?.latitude)) && 
-         isFinite(parseFloat(v.currentLocation?.longitude))
-  )
+  // Extract vehicles with valid coordinates
+  const vehiclesWithLocations = vehicles
+    .map(v => ({
+      vehicle: v,
+      coords: extractCoordinates(v)
+    }))
+    .filter(item => item.coords !== null)
+
+  console.log(`🗺️ [MAP] Rendering with ${vehiclesWithLocations.length} vehicles (out of ${vehicles.length} total)`)
 
   return (
     <div className="relative w-full h-full" style={{ background: '#0f1117', overflow: 'hidden' }}>
@@ -117,6 +194,7 @@ export default function EnhancedLiveTrackingMap({
 
       {/* Map Container */}
       <MapContainer
+        ref={mapRef}
         center={defaultCenter}
         zoom={13}
         className="w-full h-full"
@@ -124,58 +202,76 @@ export default function EnhancedLiveTrackingMap({
         zoomControl={false}
         style={{ background: '#f0ebe3' }}
       >
-        {/* Light colorful map tiles - OpenStreetMap */}
+        {/* OpenStreetMap tiles */}
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; OpenStreetMap contributors'
           maxZoom={19}
         />
 
-        {/* Premium Zoom Control */}
+        {/* Zoom Control */}
         <ZoomControl position="topright" />
 
-        {/* Map Controller for dynamic centering */}
-        <MapController selectedVehicle={selectedVehicle} vehicles={vehiclesWithLocations} />
+        {/* Map Controller for dynamic centering and interactions */}
+        <MapController selectedVehicle={selectedVehicle} vehicles={vehicles} />
 
-        {/* Vehicle markers */}
-        {vehiclesWithLocations.map(vehicle => {
-          const lat = parseFloat(vehicle.currentLocation.latitude)
-          const lng = parseFloat(vehicle.currentLocation.longitude)
-          
+        {/* Render markers for all vehicles with valid coordinates */}
+        {vehiclesWithLocations.map(({ vehicle, coords }) => {
+          const status = vehicle.status || vehicle.currentLocation?.status || 'active'
+          const icon = status === 'waiting' ? waitingVehicleIcon : activeVehicleIcon
+
           return (
             <Marker
               key={vehicle.bookingId || vehicle._id}
-              position={[lat, lng]}
-              icon={carIcon}
+              position={[coords.lat, coords.lng]}
+              icon={icon}
               eventHandlers={{
-                click: () => onVehicleSelect(vehicle),
+                click: () => {
+                  console.log('👆 [MARKER] Clicked on vehicle:', vehicle.vehicleName)
+                  onVehicleSelect(vehicle)
+                },
               }}
             >
               <Popup className="custom-popup" maxWidth={300}>
                 <div className="p-3 text-sm space-y-2">
-                  <div>
-                    <p className="font-bold text-gray-900">
-                      {vehicle.vehicleName || 'Vehicle'}
+                  <div className="space-y-1">
+                    <p className="font-bold text-gray-900 text-base">
+                      {vehicle.vehicleName || vehicle.vehicle?.model || 'Vehicle'}
                     </p>
                     <p className="text-gray-600 font-mono text-xs">
-                      {vehicle.registrationNumber || 'N/A'}
+                      {vehicle.registrationNumber || vehicle.vehicle?.registrationNumber || 'N/A'}
                     </p>
                   </div>
                   <div className="border-t pt-2">
-                    <p className="font-semibold text-gray-900 text-sm">
-                      {vehicle.customerName || 'Unknown Customer'}
+                    <p className="font-semibold text-gray-900">
+                      👤 {vehicle.customerName || vehicle.driverName || 'Unknown'}
                     </p>
+                    {vehicle.userName && (
+                      <p className="text-xs text-gray-600">
+                        Driver: {vehicle.userName}
+                      </p>
+                    )}
                   </div>
-                  <div className="text-xs">
+                  <div className="text-xs space-y-1">
                     <p className="text-gray-600">
                       Status: <span className={`font-bold ${
-                        vehicle.currentLocation?.status === 'live'
+                        status === 'active' || status === 'live'
                           ? 'text-green-600'
+                          : status === 'waiting'
+                          ? 'text-yellow-600'
                           : 'text-gray-600'
                       }`}>
-                        {vehicle.currentLocation?.status === 'live' ? '🟢 Active' : '⚪ Idle'}
+                        {status === 'active' || status === 'live' ? '🟢 Active' : status === 'waiting' ? '🟡 Waiting' : '⚪ Idle'}
                       </span>
                     </p>
+                    {vehicle.currentSpeed !== undefined && (
+                      <p className="text-gray-600">
+                        Speed: <span className="font-semibold">{vehicle.currentSpeed?.toFixed(1)} km/h</span>
+                      </p>
+                    )}
+                  </div>
+                  <div className="pt-2 border-t text-xs text-gray-500">
+                    <p>📍 {coords.lat.toFixed(6)}, {coords.lng.toFixed(6)}</p>
                   </div>
                 </div>
               </Popup>
@@ -185,13 +281,26 @@ export default function EnhancedLiveTrackingMap({
       </MapContainer>
 
       {/* No Vehicles Message */}
-      {!loading && vehiclesWithLocations.length === 0 && (
+      {!loading && vehiclesWithLocations.length === 0 && vehicles.length > 0 && (
+        <div className="absolute inset-0 flex items-center justify-center z-[300]">
+          <div className="text-center bg-gray-900/80 backdrop-blur px-6 py-8 rounded-2xl shadow-2xl border border-gray-700">
+            <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+            <p className="text-gray-100 font-semibold">Waiting for GPS Data</p>
+            <p className="text-gray-400 text-sm mt-2">
+              {vehicles.length} vehicle{vehicles.length !== 1 ? 's' : ''} tracked but location updates pending
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* No Active Vehicles Message */}
+      {!loading && vehicles.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center z-[300]">
           <div className="text-center bg-gray-900/80 backdrop-blur px-6 py-8 rounded-2xl shadow-2xl border border-gray-700">
             <AlertCircle className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-            <p className="text-gray-100 font-semibold">No active vehicles to display</p>
+            <p className="text-gray-100 font-semibold">No Active Vehicles</p>
             <p className="text-gray-400 text-sm mt-2">
-              Vehicles will appear here when they are actively tracked
+              Vehicles will appear here when actively tracked
             </p>
           </div>
         </div>
