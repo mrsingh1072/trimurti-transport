@@ -102,16 +102,37 @@ function MapController({ selectedVehicle, vehicles }) {
 
   // Handle selected vehicle - zoom and pan to it
   useEffect(() => {
-    if (!map || !selectedVehicle) return
-
-    const coords = extractCoordinates(selectedVehicle)
-    if (!coords) {
-      console.warn('🗺️ [MAP] Cannot zoom to vehicle - no valid coordinates')
+    if (!map) {
+      console.log('🗺️ [MAP] Map not initialized yet')
       return
     }
 
-    console.log(`🎯 [MAP] Flying to selected vehicle: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`)
-    map.flyTo([coords.lat, coords.lng], 15, { duration: 1 })
+    if (!selectedVehicle) {
+      console.log('🗺️ [MAP] No selectedVehicle provided')
+      return
+    }
+
+    const coords = extractCoordinates(selectedVehicle)
+    if (!coords) {
+      console.warn('🗺️ [MAP] Cannot zoom to vehicle - no valid coordinates', {
+        name: selectedVehicle?.vehicleName,
+        lat: selectedVehicle?.latitude,
+        lon: selectedVehicle?.longitude
+      })
+      return
+    }
+
+    console.log(`🎯 [MAP] Flying to selected vehicle: ${selectedVehicle?.vehicleName} at ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`)
+    
+    // Try flyTo first
+    try {
+      map.flyTo([coords.lat, coords.lng], 15, { duration: 1 })
+      console.log('✅ [MAP] flyTo executed successfully')
+    } catch (err) {
+      console.error('❌ [MAP] flyTo failed, falling back to setView:', err)
+      // Fallback to setView
+      map.setView([coords.lat, coords.lng], 15)
+    }
   }, [selectedVehicle, map])
 
   // Initial map center on first vehicle with valid coordinates or fallback location
@@ -138,6 +159,131 @@ function MapController({ selectedVehicle, vehicles }) {
 }
 
 /**
+ * Individual Marker component that handles popup opening
+ */
+function VehicleMarker({ vehicle, coords, icon, onVehicleSelect, isSelected }) {
+  const markerRef = useRef(null)
+
+  // Open popup when this marker is selected
+  useEffect(() => {
+    if (isSelected && markerRef.current) {
+      try {
+        markerRef.current.openPopup()
+        console.log(`📍 [MARKER] Opened popup for ${vehicle.vehicleName}`)
+      } catch (err) {
+        console.log('📍 [MARKER] Popup already closed or marker removed')
+      }
+    }
+  }, [isSelected, vehicle.vehicleName])
+
+  return (
+    <Marker
+      ref={markerRef}
+      position={[coords.lat, coords.lng]}
+      icon={icon}
+      eventHandlers={{
+        click: () => {
+          console.log('👆 [MARKER] Clicked on vehicle:', vehicle.vehicleName)
+          onVehicleSelect(vehicle)
+        },
+      }}
+    >
+      <Popup className="custom-popup vehicle-popup" maxWidth={320} minWidth={300}>
+        <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 rounded-lg p-4 space-y-3 shadow-2xl border border-slate-700/50">
+          {/* Vehicle Header */}
+          <div className="space-y-1.5">
+            <p className="font-bold text-white text-base leading-tight">
+              {vehicle.vehicleName || vehicle.vehicle?.model || 'Vehicle'}
+            </p>
+            <p className="text-slate-300 font-mono text-xs bg-slate-900/50 px-2 py-1 rounded inline-block">
+              {vehicle.registrationNumber || vehicle.vehicle?.registrationNumber || 'N/A'}
+            </p>
+          </div>
+
+          {/* Customer & Booking Info */}
+          <div className="border-t border-slate-700/50 pt-2 space-y-1.5">
+            <div>
+              <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Customer</p>
+              <p className="font-semibold text-white text-sm">
+                {vehicle.customerName || vehicle.driverName || 'Unknown'}
+              </p>
+            </div>
+            {vehicle.bookingType && (
+              <div>
+                <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Booking Type</p>
+                <p className="text-emerald-400 font-semibold text-sm capitalize">{vehicle.bookingType}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Status & Speed */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-slate-800/50 rounded-lg p-2 border border-slate-700/30">
+              <p className="text-slate-400 text-xs font-semibold mb-1">Status</p>
+              <p className="font-bold text-sm text-emerald-400">🟢 Active</p>
+            </div>
+            <div className="bg-slate-800/50 rounded-lg p-2 border border-slate-700/30">
+              <p className="text-slate-400 text-xs font-semibold mb-1">Speed</p>
+              <p className="font-bold text-emerald-400 text-sm">
+                {vehicle.currentSpeed !== undefined ? `${vehicle.currentSpeed?.toFixed(1)} km/h` : 'N/A'}
+              </p>
+            </div>
+          </div>
+
+          {/* Location & Last Update */}
+          <div className="border-t border-slate-700/50 pt-2 space-y-2">
+            <div>
+              <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Location</p>
+              <p className="text-slate-300 font-mono text-xs break-all">
+                {coords.lat.toFixed(6)}, {coords.lng.toFixed(6)}
+              </p>
+            </div>
+            {vehicle.lastUpdate && (
+              <div>
+                <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Last Updated</p>
+                <p className="text-emerald-400 text-xs font-semibold">
+                  {new Date(vehicle.lastUpdate).toLocaleTimeString()}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Open Booking Button */}
+          <button className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-semibold py-2 px-3 rounded-lg transition-all shadow-lg text-sm mt-1">
+            Open Booking
+          </button>
+        </div>
+      </Popup>
+    </Marker>
+  )
+}
+
+/**
+ * MapInstanceProvider - Helper to expose map instance to parent
+ */
+function MapInstanceProvider({ onMapReady }) {
+  const map = useMap()
+  
+  useEffect(() => {
+    console.log('🗺️ [MapInstanceProvider] useEffect triggered')
+    console.log('   map exists:', !!map)
+    console.log('   onMapReady exists:', !!onMapReady)
+    
+    if (map && onMapReady) {
+      console.log('🗺️ [MapInstanceProvider] Calling onMapReady callback with map instance')
+      onMapReady(map)
+      console.log('🗺️ [MAP] Map instance provided to parent')
+    } else if (map) {
+      console.warn('⚠️ [MapInstanceProvider] onMapReady callback not provided!')
+    } else {
+      console.log('🔵 [MapInstanceProvider] Map not ready yet (waiting for MapContainer render)')
+    }
+  }, [map, onMapReady])
+  
+  return null
+}
+
+/**
  * Enhanced Live Tracking Map with Leaflet
  * - Renders markers for all active vehicles with valid coordinates
  * - Supports click-to-zoom from sidebar
@@ -150,6 +296,7 @@ export default function EnhancedLiveTrackingMap({
   onVehicleSelect = () => {},
   mapHeight = 'h-screen',
   loading = false,
+  onMapReady = null,
 }) {
   const [defaultCenter, setDefaultCenter] = useState([28.6139, 77.2090]) // Delhi fallback
   const mapRef = useRef(null)
@@ -170,6 +317,19 @@ export default function EnhancedLiveTrackingMap({
     }
   }, [])
 
+  // Auto-resize map when window resizes
+  useEffect(() => {
+    const handleResize = () => {
+      if (mapRef.current) {
+        console.log('🔄 [MAP] Window resize detected, calling invalidateSize')
+        mapRef.current.invalidateSize()
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
   // Extract vehicles with valid coordinates
   const vehiclesWithLocations = vehicles
     .map(v => ({
@@ -181,7 +341,19 @@ export default function EnhancedLiveTrackingMap({
   console.log(`🗺️ [MAP] Rendering with ${vehiclesWithLocations.length} vehicles (out of ${vehicles.length} total)`)
 
   return (
-    <div className="relative w-full h-full" style={{ background: '#0f1117', overflow: 'hidden' }}>
+    <div
+      id="tracking-map"
+      className="tracking-map-wrapper"
+      style={{
+        width: '100%',
+        height: '700px',
+        minHeight: '700px',
+        display: 'block',
+        position: 'relative',
+        overflow: 'hidden',
+        background: '#0f172a'
+      }}
+    >
       {/* Loading overlay */}
       {loading && (
         <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-[400]">
@@ -192,121 +364,72 @@ export default function EnhancedLiveTrackingMap({
         </div>
       )}
 
-      {/* Map Container */}
+      {/* Map Container - NUCLEAR FIX */}
       <MapContainer
-        ref={mapRef}
-        center={defaultCenter}
-        zoom={13}
-        className="w-full h-full"
+        center={[16.4636, 80.5050]}
+        zoom={14}
         scrollWheelZoom={true}
-        zoomControl={false}
-        style={{ background: '#f0ebe3' }}
+        style={{
+          width: '100%',
+          height: '100%'
+        }}
+        whenCreated={(map) => {
+          console.log('🗺️ [NUCLEAR] Map instance created')
+          mapRef.current = map
+          console.log('   ✅ mapRef.current assigned')
+          
+          setTimeout(() => {
+            console.log('🔄 [NUCLEAR] Calling invalidateSize at 500ms')
+            map.invalidateSize()
+            console.log('   ✅ invalidateSize() complete')
+          }, 500)
+          
+          setTimeout(() => {
+            console.log('🔄 [NUCLEAR] Forcing tile layer redraw at 800ms')
+            map.eachLayer(layer => {
+              if (layer.redraw) {
+                layer.redraw()
+                console.log('   ✅ Layer redrawn')
+              }
+            })
+          }, 800)
+          
+          if (onMapReady) {
+            onMapReady(map)
+            console.log('   ✅ onMapReady callback called')
+          }
+        }}
       >
         {/* OpenStreetMap tiles */}
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; OpenStreetMap contributors'
-          maxZoom={19}
+          attribution="&copy; OpenStreetMap contributors"
         />
 
         {/* Zoom Control */}
         <ZoomControl position="topright" />
 
+        {/* Map Instance Provider - expose map to parent component */}
+        <MapInstanceProvider onMapReady={onMapReady} />
+
         {/* Map Controller for dynamic centering and interactions */}
         <MapController selectedVehicle={selectedVehicle} vehicles={vehicles} />
 
-        {/* Render markers for all vehicles with valid coordinates */}
-        {vehiclesWithLocations.map(({ vehicle, coords }) => {
-          const status = vehicle.status || vehicle.currentLocation?.status || 'active'
-          const icon = status === 'waiting' ? waitingVehicleIcon : activeVehicleIcon
-
+        {/* Vehicle Markers */}
+        {vehiclesWithLocations.map((item) => {
+          const vehicle = item.vehicle
+          const coords = item.coords
+          const icon = vehicle.status === 'waiting' ? waitingVehicleIcon : activeVehicleIcon
+          
           return (
-            <Marker
-              key={vehicle.bookingId || vehicle._id}
-              position={[coords.lat, coords.lng]}
+            <VehicleMarker
+              key={vehicle._id || vehicle.id}
+              vehicle={vehicle}
+              coords={coords}
               icon={icon}
-              eventHandlers={{
-                click: () => {
-                  console.log('👆 [MARKER] Clicked on vehicle:', vehicle.vehicleName)
-                  onVehicleSelect(vehicle)
-                },
-              }}
-            >
-              <Popup className="custom-popup vehicle-popup" maxWidth={320} minWidth={300}>
-                <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 rounded-lg p-4 space-y-3 shadow-2xl border border-slate-700/50">
-                  {/* Vehicle Header */}
-                  <div className="space-y-1.5">
-                    <p className="font-bold text-white text-base leading-tight">
-                      {vehicle.vehicleName || vehicle.vehicle?.model || 'Vehicle'}
-                    </p>
-                    <p className="text-slate-300 font-mono text-xs bg-slate-900/50 px-2 py-1 rounded inline-block">
-                      {vehicle.registrationNumber || vehicle.vehicle?.registrationNumber || 'N/A'}
-                    </p>
-                  </div>
-
-                  {/* Customer & Booking Info */}
-                  <div className="border-t border-slate-700/50 pt-2 space-y-1.5">
-                    <div>
-                      <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Customer</p>
-                      <p className="font-semibold text-white text-sm">
-                        {vehicle.customerName || vehicle.driverName || 'Unknown'}
-                      </p>
-                    </div>
-                    {vehicle.bookingType && (
-                      <div>
-                        <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Booking Type</p>
-                        <p className="text-emerald-400 font-semibold text-sm capitalize">{vehicle.bookingType}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Status & Speed */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-slate-800/50 rounded-lg p-2 border border-slate-700/30">
-                      <p className="text-slate-400 text-xs font-semibold mb-1">Status</p>
-                      <p className={`font-bold text-sm ${
-                        status === 'active' || status === 'live'
-                          ? 'text-emerald-400'
-                          : status === 'waiting'
-                          ? 'text-yellow-400'
-                          : 'text-slate-400'
-                      }`}>
-                        {status === 'active' || status === 'live' ? '🟢 Active' : status === 'waiting' ? '🟡 Waiting' : '⚪ Offline'}
-                      </p>
-                    </div>
-                    <div className="bg-slate-800/50 rounded-lg p-2 border border-slate-700/30">
-                      <p className="text-slate-400 text-xs font-semibold mb-1">Speed</p>
-                      <p className="font-bold text-emerald-400 text-sm">
-                        {vehicle.currentSpeed !== undefined ? `${vehicle.currentSpeed?.toFixed(1)} km/h` : 'N/A'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Location & Last Update */}
-                  <div className="border-t border-slate-700/50 pt-2 space-y-2">
-                    <div>
-                      <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Location</p>
-                      <p className="text-slate-300 font-mono text-xs break-all">
-                        {coords.lat.toFixed(6)}, {coords.lng.toFixed(6)}
-                      </p>
-                    </div>
-                    {vehicle.lastUpdate && (
-                      <div>
-                        <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Last Updated</p>
-                        <p className="text-emerald-400 text-xs font-semibold">
-                          {new Date(vehicle.lastUpdate).toLocaleTimeString()}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Open Booking Button */}
-                  <button className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-semibold py-2 px-3 rounded-lg transition-all shadow-lg text-sm mt-1">
-                    Open Booking
-                  </button>
-                </div>
-              </Popup>
-            </Marker>
+              onVehicleSelect={onVehicleSelect}
+              isSelected={selectedVehicle?._id === vehicle._id}
+            />
           )
         })}
       </MapContainer>
@@ -339,3 +462,4 @@ export default function EnhancedLiveTrackingMap({
     </div>
   )
 }
+

@@ -42,16 +42,10 @@ export default function StaffTrackingPage() {
 
   // Location state removed - now using cleaner operational dashboard
 
-  // Focus map on vehicle when selected
+  // Focus map on vehicle when selected - handled by MapController via selectedVehicle state
   const focusOnVehicle = useCallback((vehicle) => {
-    if (vehicle && vehicle.latitude && vehicle.longitude) {
-      if (mapContainerRef.current && mapContainerRef.current.querySelector('.leaflet-container')) {
-        const map = mapContainerRef.current.leafletMap
-        if (map) {
-          map.setView([vehicle.latitude, vehicle.longitude], 16)
-        }
-      }
-    }
+    // Simply select the vehicle - MapController will handle the map centering
+    setSelectedVehicle(vehicle)
   }, [])
 
 
@@ -94,63 +88,95 @@ export default function StaffTrackingPage() {
   useEffect(() => { if (refetching) fetchVehicles() }, [refetching, fetchVehicles])
 
   const handleVehicleSelect = useCallback((vehicle) => {
+    console.log('🔵 [STAFF] Vehicle selected:', vehicle?.vehicleName, 'Coords:', vehicle?.latitude, vehicle?.longitude)
+    
+    // Check if vehicle has valid coordinates
+    if (!vehicle?.latitude || !vehicle?.longitude || vehicle.latitude === 0 || vehicle.longitude === 0) {
+      console.warn('⚠️ [STAFF] No valid coordinates for vehicle:', vehicle?.vehicleName)
+      // Show user feedback
+      const msg = `⚠️ Live location unavailable for ${vehicle?.vehicleName || 'this vehicle'}`
+      console.log(msg)
+      // In a real app, you'd show a toast notification here
+      return
+    }
+    
+    // Select the vehicle - this triggers MapController to center
     setSelectedVehicle(vehicle)
-    focusOnVehicle(vehicle)
-  }, [focusOnVehicle])
+    
+    // Scroll vehicle into view if on Vehicles tab
+    if (activeTab === 'vehicles') {
+      setTimeout(() => {
+        const vehicleCard = document.querySelector(`[data-vehicle-id="${vehicle._id || vehicle.bookingId}"]`)
+        if (vehicleCard) {
+          vehicleCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+          vehicleCard.classList.add('ring-2', 'ring-emerald-500/50')
+        }
+      }, 100)
+    }
+  }, [activeTab])
+
+  // Simplified Status: Online (has coordinates) or Waiting (no coordinates)
+  const getVehicleStatus = (v) => {
+    if (v.latitude && v.longitude && v.latitude !== 0 && v.longitude !== 0) return 'online'
+    return 'waiting'
+  }
 
   const stats = {
     total: vehicles.length,
-    active: vehicles.filter(v => v.status === 'active' || (v.latitude && v.longitude)).length,
-    waiting: vehicles.filter(v => v.status === 'waiting' || !v.latitude || !v.longitude).length,
-    offline: vehicles.filter(v => v.status === 'offline').length
+    online: vehicles.filter(v => getVehicleStatus(v) === 'online').length,
+    waiting: vehicles.filter(v => getVehicleStatus(v) === 'waiting').length
   }
 
   const filteredVehicles = vehicles.filter(v => {
     if (activeTab === 'daily') return v.rideType !== 'rental' && v.rideType !== 'outstation'
     if (activeTab === 'rental') return v.rideType === 'rental'
     if (activeTab === 'outstation') return v.rideType === 'outstation'
+    if (activeTab === 'vehicles') return true
     return true
   })
 
   const searchedVehicles = filteredVehicles.filter(v => {
     if (!searchLocation) return true
-    return (
-      v.vehicleName?.toLowerCase().includes(searchLocation.toLowerCase()) ||
-      v.customerName?.toLowerCase().includes(searchLocation.toLowerCase()) ||
-      v.registrationNumber?.toLowerCase().includes(searchLocation.toLowerCase())
-    )
+    const name = v.vehicleName || ''
+    const customer = v.customerName || ''
+    const reg = v.registrationNumber || ''
+    return name.toLowerCase().includes(searchLocation.toLowerCase()) ||
+           customer.toLowerCase().includes(searchLocation.toLowerCase()) ||
+           reg.toLowerCase().includes(searchLocation.toLowerCase())
   })
 
   // Vehicle list tab filtering and sorting
   const vehicleListData = (() => {
-    let data = vehicles
+    let data = vehicles.slice() // All vehicles for Vehicles tab
 
     // Filter by search
     if (vehicleSearch) {
       data = data.filter(v =>
-        v.vehicleName?.toLowerCase().includes(vehicleSearch.toLowerCase()) ||
-        v.registrationNumber?.toLowerCase().includes(vehicleSearch.toLowerCase()) ||
-        v.customerName?.toLowerCase().includes(vehicleSearch.toLowerCase())
+        (v.vehicleName || '').toLowerCase().includes(vehicleSearch.toLowerCase()) ||
+        (v.registrationNumber || '').toLowerCase().includes(vehicleSearch.toLowerCase()) ||
+        (v.customerName || '').toLowerCase().includes(vehicleSearch.toLowerCase())
       )
     }
 
-    // Filter by status
+    // Filter by status (only online/waiting)
     if (vehicleStatusFilter !== 'all') {
-      data = data.filter(v => v.status === vehicleStatusFilter)
+      data = data.filter(v => getVehicleStatus(v) === vehicleStatusFilter)
     }
 
     // Sort
     data.sort((a, b) => {
-      if (vehicleSortBy === 'active') {
-        const aActive = a.status === 'active' ? 0 : 1
-        const bActive = b.status === 'active' ? 0 : 1
-        return aActive - bActive
+      if (vehicleSortBy === 'online') {
+        const aOnline = getVehicleStatus(a) === 'online' ? 0 : 1
+        const bOnline = getVehicleStatus(b) === 'online' ? 0 : 1
+        return aOnline - bOnline
       } else if (vehicleSortBy === 'waiting') {
-        const aWaiting = a.status === 'waiting' ? 0 : 1
-        const bWaiting = b.status === 'waiting' ? 0 : 1
+        const aWaiting = getVehicleStatus(a) === 'waiting' ? 0 : 1
+        const bWaiting = getVehicleStatus(b) === 'waiting' ? 0 : 1
         return aWaiting - bWaiting
       } else if (vehicleSortBy === 'lastUpdated') {
-        return new Date(b.lastUpdate) - new Date(a.lastUpdate)
+        const aTime = new Date(a.lastUpdate || a.updatedAt || 0).getTime()
+        const bTime = new Date(b.lastUpdate || b.updatedAt || 0).getTime()
+        return bTime - aTime
       }
       return 0
     })
@@ -185,7 +211,7 @@ export default function StaffTrackingPage() {
         {mobileOpen && <div className="fixed inset-0 bg-black/60 z-40 md:hidden" onClick={() => setMobileOpen(false)} />}
 
         {/* PREMIUM SIDEBAR */}
-        <div className={`sidebar-desktop md:relative w-full md:w-96 h-full bg-slate-800/40 backdrop-blur-md border-r border-slate-700/50 flex flex-col z-40 overflow-hidden ${mobileOpen ? 'open' : ''}`}>
+        <div className={`sidebar-desktop md:relative w-full md:w-[35%] h-full bg-slate-800/40 backdrop-blur-md border-r border-slate-700/50 flex flex-col z-40 overflow-hidden ${mobileOpen ? 'open' : ''}`}>
           
           {/* Header with Close Button */}
           <div className="p-6 border-b border-slate-700/50 flex-shrink-0 bg-gradient-to-b from-slate-700/30 to-transparent">
@@ -226,7 +252,7 @@ export default function StaffTrackingPage() {
             {/* Tabs */}
             <div className="bg-slate-900/40 rounded-lg p-1 flex gap-1 border border-slate-700/50 flex-wrap">
               {[{ id: 'daily', label: 'Daily', icon: '🚕' }, { id: 'rental', label: 'Rental', icon: '📅' }, { id: 'outstation', label: 'Out', icon: '🛣️' }, { id: 'vehicles', label: 'Vehicles', icon: '🚗' }].map(tab => (
-                <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex-1 px-2 py-2 text-xs font-semibold rounded transition-all duration-200 ${activeTab === tab.id ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-lg' : 'text-slate-300 hover:text-white'}`}>
+                <button key={tab.id} onClick={() => { console.log('📌 Tab clicked:', tab.id); setActiveTab(tab.id); }} className={`flex-1 px-2 py-2 text-xs font-semibold rounded transition-all duration-200 ${activeTab === tab.id ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-lg' : 'text-slate-300 hover:text-white'}`}>
                   {tab.icon} {tab.label}
                 </button>
               ))}
@@ -248,12 +274,12 @@ export default function StaffTrackingPage() {
               <p className="text-xs font-bold text-slate-400 tracking-widest mb-3">⚙️ SYSTEM STATUS</p>
               
               {/* Status Grid */}
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <div className="bg-slate-900/40 rounded-lg p-3 border border-emerald-500/20">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-2xl font-black text-emerald-400">{stats.active}</p>
-                      <p className="text-xs text-emerald-300 font-semibold mt-1">🟢 Active</p>
+                      <p className="text-2xl font-black text-emerald-400">{stats.online}</p>
+                      <p className="text-xs text-emerald-300 font-semibold mt-1">🟢 Online</p>
                     </div>
                   </div>
                 </div>
@@ -265,15 +291,14 @@ export default function StaffTrackingPage() {
                     </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Offline Status */}
-              <div className="bg-slate-900/40 rounded-lg p-3 border border-slate-600/30 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-slate-300">🔴 Offline</p>
-                  <p className="text-xs text-slate-400 mt-0.5">{stats.offline} vehicles</p>
+                <div className="bg-slate-900/40 rounded-lg p-3 border border-cyan-500/20">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-2xl font-black text-cyan-400">{stats.total}</p>
+                      <p className="text-xs text-cyan-300 font-semibold mt-1">📊 Total</p>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-lg font-black text-slate-400">{stats.offline}</p>
               </div>
             </div>
 
@@ -306,64 +331,125 @@ export default function StaffTrackingPage() {
 
           {/* Vehicle List Tab Content */}
           {activeTab === 'vehicles' && (
-            <div className="flex-1 overflow-hidden flex flex-col">
-              <div className="px-4 py-3 border-b border-slate-700/50 space-y-3">
+            <div className="flex-1 overflow-hidden flex flex-col bg-slate-950">
+              {/* Vehicles Tab Header with Filters */}
+              <div className="px-4 py-3 border-b border-slate-700/50 space-y-3 bg-gradient-to-r from-slate-900/50 to-slate-900/30">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-emerald-400">🚗 Fleet Manager</h3>
+                  <span className="text-xs bg-emerald-500/20 px-2.5 py-1 rounded border border-emerald-500/30 text-emerald-300 font-semibold">{vehicleListData.length} vehicle{vehicleListData.length !== 1 ? 's' : ''}</span>
+                </div>
                 <div className="relative">
                   <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input type="text" placeholder="Search by name/plate..." value={vehicleSearch} onChange={(e) => setVehicleSearch(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-slate-600/50 rounded-lg text-sm text-white placeholder-slate-500 bg-slate-900/20 focus:outline-none focus:ring-2 focus:ring-emerald-500/50" />
+                  <input type="text" placeholder="Search by name or plate..." value={vehicleSearch} onChange={(e) => setVehicleSearch(e.target.value)} className="w-full pl-10 pr-4 py-2.5 border border-slate-600/50 rounded-lg text-sm text-white placeholder-slate-500 bg-slate-900/20 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all" />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <select value={vehicleStatusFilter} onChange={(e) => setVehicleStatusFilter(e.target.value)} className="px-2 py-1.5 text-xs bg-slate-900/30 border border-slate-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
+                  <select value={vehicleStatusFilter} onChange={(e) => setVehicleStatusFilter(e.target.value)} className="px-3 py-2 text-xs bg-slate-900/40 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer transition-all">
                     <option value="all">All Status</option>
-                    <option value="active">🟢 Active</option>
+                    <option value="online">🟢 Online</option>
                     <option value="waiting">🟡 Waiting</option>
-                    <option value="offline">🔴 Offline</option>
                   </select>
-                  <select value={vehicleSortBy} onChange={(e) => setVehicleSortBy(e.target.value)} className="px-2 py-1.5 text-xs bg-slate-900/30 border border-slate-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
-                    <option value="active">Active First</option>
+                  <select value={vehicleSortBy} onChange={(e) => setVehicleSortBy(e.target.value)} className="px-3 py-2 text-xs bg-slate-900/40 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer transition-all">
+                    <option value="online">Online First</option>
                     <option value="waiting">Waiting First</option>
-                    <option value="lastUpdated">Last Updated</option>
+                    <option value="lastUpdated">Recently Updated</option>
                   </select>
                 </div>
               </div>
+              
+              {/* Vehicles List */}
               <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-900">
-                {vehicleListData.length === 0 ? (
+                {vehicles.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-40 px-4">
-                    <MapPin className="w-8 h-8 text-slate-500 mb-2" />
-                    <p className="text-sm text-slate-400">No vehicles found</p>
+                    <AlertTriangle className="w-10 h-10 text-slate-500 mb-3" />
+                    <p className="text-sm font-semibold text-slate-400">No vehicles available</p>
+                    <p className="text-xs text-slate-500 mt-1">Vehicles will appear here when data is available</p>
+                  </div>
+                ) : vehicleListData.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-40 px-4">
+                    <MapPin className="w-10 h-10 text-slate-500 mb-3" />
+                    <p className="text-sm font-semibold text-slate-400">No vehicles match your filters</p>
+                    <p className="text-xs text-slate-500 mt-1">Try adjusting your search or filters</p>
                   </div>
                 ) : (
                   <div className="p-3 space-y-2">
-                    {vehicleListData.map((vehicle) => {
-                      const status = vehicle.status || 'waiting'
-                      const statusConfig = {
-                        waiting: { icon: '🟡', color: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/30' },
-                        active: { icon: '🟢', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
-                        completed: { icon: '🔵', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30' },
-                        offline: { icon: '🔴', color: 'text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-500/30' }
-                      }
-                      const config = statusConfig[status] || statusConfig.waiting
+                    {vehicleListData.map((vehicle, idx) => {
+                      const status = getVehicleStatus(vehicle)
                       const isSelected = selectedVehicle?._id === vehicle._id
+                      const statusConfig = {
+                        online: { icon: '🟢', label: 'Online', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
+                        waiting: { icon: '🟡', label: 'Waiting', color: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/30' }
+                      }
+                      const config = statusConfig[status]
+
+                      // Robust property access
+                      const name = vehicle.vehicleName || vehicle.name || 'Unknown Vehicle'
+                      const model = vehicle.vehicleModel || vehicle.model || ''
+                      const reg = vehicle.registrationNumber || vehicle.regNumber || 'N/A'
+                      const customer = vehicle.customerName || vehicle.passengerName || 'Not Assigned'
+                      const bookingType = vehicle.bookingType || vehicle.rideType || 'N/A'
+                      const speed = vehicle.currentSpeed || vehicle.speed || 0
+                      const lat = vehicle.latitude || 0
+                      const lon = vehicle.longitude || 0
+                      const lastUpdate = vehicle.lastUpdate || vehicle.updatedAt || new Date().toISOString()
+                      
                       return (
-                        <div key={vehicle._id || vehicle.bookingId} className={`p-3 rounded-lg border transition-all cursor-pointer ${isSelected ? `${config.bg} ${config.border} ring-2 ring-emerald-500/50` : 'bg-slate-900/30 border-slate-700/30 hover:bg-slate-900/50'}`}>
-                          <div onClick={() => { setSelectedVehicle(vehicle); focusOnVehicle(vehicle); }} className="mb-2">
-                            <div className="flex items-start justify-between mb-2">
-                              <div className="flex-1">
-                                <p className="font-bold text-white text-sm">{vehicle.vehicleName || 'Vehicle'}</p>
-                                <p className="text-xs text-slate-400 font-mono mt-0.5">{vehicle.registrationNumber || 'N/A'}</p>
+                        <div
+                          key={vehicle._id || vehicle.bookingId || `vehicle-${idx}`}
+                          data-vehicle-id={vehicle._id || vehicle.bookingId}
+                          className={`p-3.5 rounded-lg border transition-all duration-200 ${isSelected ? `${config.bg} ${config.border} ring-2 ring-emerald-500/50 shadow-lg shadow-emerald-500/20 animate-pulse` : 'bg-slate-900/30 border-slate-700/30 hover:bg-slate-900/50 hover:border-slate-600/50'} cursor-pointer`}
+                        >
+                          {/* Header */}
+                          <div onClick={() => handleVehicleSelect(vehicle)} className="mb-2 pb-2 border-b border-slate-700/30">
+                            <div className="flex items-start justify-between gap-2 mb-1">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-white text-sm truncate">{name}</p>
+                                {model && <p className="text-xs text-slate-400 mt-0.5">{model}</p>}
                               </div>
-                              <span className={`text-xs font-semibold px-2 py-1 rounded ${config.color}`}>{config.icon} {status.charAt(0).toUpperCase() + status.slice(1)}</span>
+                              <span className={`text-xs font-semibold px-2 py-1 rounded whitespace-nowrap ${config.color}`}>
+                                {config.icon} {config.label}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-400 font-mono">{reg}</p>
+                          </div>
+
+                          {/* Details */}
+                          <div className="text-xs space-y-1.5 bg-slate-900/20 rounded p-2.5 mb-3 border border-slate-700/30">
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Customer:</span>
+                              <span className="text-slate-200 font-semibold">{customer}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Booking:</span>
+                              <span className="text-emerald-300 font-semibold capitalize">{bookingType}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Speed:</span>
+                              <span className="text-emerald-300 font-semibold">{speed.toFixed(1)} km/h</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Location:</span>
+                              <span className="text-slate-300 font-mono text-xs">{lat.toFixed(4)}, {lon.toFixed(4)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Updated:</span>
+                              <span className="text-emerald-300 font-semibold">{getTimeSince(lastUpdate)}</span>
                             </div>
                           </div>
-                          <div className="text-xs space-y-1 bg-slate-900/20 rounded p-2.5 mb-2 border border-slate-700/30">
-                            <div className="flex justify-between"><span className="text-slate-400">Customer:</span><span className="text-slate-200">{vehicle.customerName || 'Unknown'}</span></div>
-                            {vehicle.currentSpeed !== undefined && <div className="flex justify-between"><span className="text-slate-400">Speed:</span><span className="text-emerald-400">{vehicle.currentSpeed.toFixed(1)} km/h</span></div>}
-                            {vehicle.latitude && <div className="flex justify-between"><span className="text-slate-400">Location:</span><span className="text-slate-300 font-mono text-xs">{vehicle.latitude.toFixed(4)}, {vehicle.longitude.toFixed(4)}</span></div>}
-                            <div className="flex justify-between"><span className="text-slate-400">Updated:</span><span className="text-emerald-400">{getTimeSince(vehicle.lastUpdate)}</span></div>
-                          </div>
+
+                          {/* Actions */}
                           <div className="flex gap-2">
-                            <button onClick={() => { setSelectedVehicle(vehicle); focusOnVehicle(vehicle); }} className="flex-1 px-2 py-1.5 text-xs bg-emerald-500/20 text-emerald-400 rounded border border-emerald-500/30">📍 Map</button>
-                            <button onClick={() => focusOnVehicle(vehicle)} className="flex-1 px-2 py-1.5 text-xs bg-cyan-500/20 text-cyan-400 rounded border border-cyan-500/30">🎯 Focus</button>
+                            <button
+                              onClick={() => handleVehicleSelect(vehicle)}
+                              className="flex-1 px-2 py-2 text-xs bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 font-semibold rounded border border-emerald-500/30 transition-all"
+                            >
+                              📍 View Map
+                            </button>
+                            <button
+                              onClick={() => handleVehicleSelect(vehicle)}
+                              className="flex-1 px-2 py-2 text-xs bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 font-semibold rounded border border-cyan-500/30 transition-all"
+                            >
+                              🎯 Focus
+                            </button>
                           </div>
                         </div>
                       )
@@ -531,8 +617,8 @@ export default function StaffTrackingPage() {
           </div>
         </div>
 
-        {/* MAP CONTAINER */}
-        <div ref={mapContainerRef} className={`flex-1 relative overflow-hidden map-container ${mobileOpen ? '' : 'visible md:visible'}`}>
+        {/* MAP CONTAINER - 65% width on desktop, always visible */}
+        <div ref={mapContainerRef} className={`hidden md:flex flex-1 relative overflow-hidden map-container`}>
           {/* Mobile Toggle Button */}
           <button onClick={() => setMobileOpen(true)} className="absolute top-4 left-4 md:hidden z-40 p-3 bg-slate-800/80 backdrop-blur-sm rounded-lg shadow-lg hover:bg-slate-700/80 transition-all border border-slate-700/50">
             <Menu size={24} className="text-slate-200" />
