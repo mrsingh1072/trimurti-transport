@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import { getLiveTracking } from '../../services/api'
 import EnhancedLiveTrackingMap from '../../components/EnhancedLiveTrackingMap'
 import StaffLayout from '../../components/StaffLayout'
-import { AlertCircle, Search, MapPin, ChevronRight, Menu, X, Zap, Navigation, Home } from 'lucide-react'
+import { AlertCircle, Search, MapPin, ChevronRight, Menu, X, Zap, Navigation, Home, Plus, Edit, Trash2 } from 'lucide-react'
 
 /**
  * Staff Live Vehicle Tracking Page - Premium SaaS Dashboard
@@ -39,11 +39,17 @@ export default function StaffTrackingPage() {
     return `${Math.floor(seconds / 3600)}h ago`
   }
 
-  const [savedLocations] = useState([
-    { name: 'Office', address: '123 Business Hub, City Center', icon: '🏢' },
-    { name: 'Depot', address: '456 Logistics Hub, Warehouse', icon: '🏭' },
-    { name: 'Terminal', address: 'Main Station, Transit Point', icon: '🚩' }
+  const [savedLocations, setSavedLocations] = useState([
+    { id: 1, name: 'Head Office', address: 'Trimurti Transport Main Office, City Center', icon: '🏢', lat: 28.6139, lng: 77.2090, status: 'active' },
+    { id: 2, name: 'Vehicle Yard', address: 'Parking & Service Yard, Industrial Zone', icon: '🛻', lat: 28.5350, lng: 77.3910, status: 'active' },
+    { id: 3, name: 'Pickup Point', address: 'Main Customer Pickup Zone, Downtown', icon: '🚌', lat: 28.6305, lng: 77.2295, status: 'active' },
+    { id: 4, name: 'Airport Pickup', address: 'Airport Entry Gate Terminal', icon: '✈️', lat: 28.5562, lng: 77.1000, status: 'active' },
+    { id: 5, name: 'Railway Station', address: 'Station Gate & Parking Area', icon: '🚉', lat: 28.6428, lng: 77.2197, status: 'active' },
+    { id: 6, name: 'Hotel Delivery', address: 'Popular Hotels & Tourism Hub', icon: '🏨', lat: 28.6139, lng: 77.2300, status: 'active' }
   ])
+  const [showAddLocation, setShowAddLocation] = useState(false)
+  const [editingLocation, setEditingLocation] = useState(null)
+  const [newLocation, setNewLocation] = useState({ name: '', address: '', icon: '📍', lat: 28.6139, lng: 77.2090 })
 
   // Smart positioning for detail card - keeps it within map bounds
   const calculateCardPosition = useCallback(() => {
@@ -106,6 +112,40 @@ export default function StaffTrackingPage() {
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [selectedVehicle, calculateCardPosition])
+
+  // Center map on location
+  const centerMapOnLocation = useCallback((lat, lng) => {
+    if (mapContainerRef.current && mapContainerRef.current.querySelector('.leaflet-container')) {
+      const map = mapContainerRef.current.leafletMap
+      if (map) {
+        map.setView([lat, lng], 15)
+      }
+    }
+  }, [])
+
+  // Add new location
+  const handleAddLocation = useCallback(() => {
+    if (newLocation.name && newLocation.address) {
+      const id = Math.max(...savedLocations.map(l => l.id || 0), 0) + 1
+      setSavedLocations([...savedLocations, { ...newLocation, id, status: 'active' }])
+      setNewLocation({ name: '', address: '', icon: '📍', lat: 28.6139, lng: 77.2090 })
+      setShowAddLocation(false)
+    }
+  }, [newLocation, savedLocations])
+
+  // Delete location
+  const handleDeleteLocation = useCallback((id) => {
+    setSavedLocations(savedLocations.filter(l => l.id !== id))
+    setEditingLocation(null)
+  }, [savedLocations])
+
+  // Update location
+  const handleUpdateLocation = useCallback(() => {
+    if (editingLocation && editingLocation.name && editingLocation.address) {
+      setSavedLocations(savedLocations.map(l => l.id === editingLocation.id ? editingLocation : l))
+      setEditingLocation(null)
+    }
+  }, [editingLocation, savedLocations])
 
   const fetchVehicles = useCallback(async () => {
     try {
@@ -254,23 +294,137 @@ export default function StaffTrackingPage() {
             </div>
           </div>
 
-          {/* Saved Locations */}
+          {/* Key Business Locations */}
           {!error && (
-            <div className="px-4 py-3 border-b border-slate-700/50 flex-shrink-0">
-              <p className="text-xs font-bold text-emerald-400 mb-2 tracking-wider">📍 KEY LOCATIONS</p>
+            <div className="px-4 py-3 border-b border-slate-700/50 flex-shrink-0 max-h-72 overflow-y-auto scrollbar-thin">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-bold text-emerald-400 tracking-wider">📍 BUSINESS LOCATIONS</p>
+                <button 
+                  onClick={() => setShowAddLocation(!showAddLocation)}
+                  className="p-1.5 hover:bg-emerald-500/20 rounded-lg transition-all text-emerald-400 hover:text-emerald-300"
+                  title="Add location"
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
+
+              {/* Add Location Form */}
+              {showAddLocation && (
+                <div className="mb-3 p-3 bg-slate-900/50 border border-emerald-500/30 rounded-lg space-y-2">
+                  <input 
+                    type="text" 
+                    placeholder="Location name" 
+                    value={newLocation.name}
+                    onChange={(e) => setNewLocation({...newLocation, name: e.target.value})}
+                    className="w-full px-2 py-1.5 text-xs bg-slate-900/30 border border-slate-700 rounded text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  />
+                  <input 
+                    type="text" 
+                    placeholder="Address" 
+                    value={newLocation.address}
+                    onChange={(e) => setNewLocation({...newLocation, address: e.target.value})}
+                    className="w-full px-2 py-1.5 text-xs bg-slate-900/30 border border-slate-700 rounded text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  />
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={handleAddLocation}
+                      className="flex-1 px-2 py-1.5 text-xs bg-emerald-500/80 hover:bg-emerald-500 text-white font-semibold rounded transition-all"
+                    >
+                      Save
+                    </button>
+                    <button 
+                      onClick={() => setShowAddLocation(false)}
+                      className="flex-1 px-2 py-1.5 text-xs bg-slate-700/50 hover:bg-slate-700 text-slate-300 font-semibold rounded transition-all"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Location Cards */}
               <div className="space-y-2">
-                {savedLocations.map((loc, idx) => (
-                  <button key={idx} className="w-full text-left px-3 py-2.5 rounded-lg bg-slate-900/30 hover:bg-emerald-500/10 border border-slate-700/30 hover:border-emerald-500/50 transition-all vehicle-card-hover">
-                    <div className="flex items-start gap-2">
-                      <span className="text-lg flex-shrink-0">{loc.icon}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-white">{loc.name}</p>
-                        <p className="text-xs text-slate-400 truncate">{loc.address}</p>
-                      </div>
+                {savedLocations.map((loc) => (
+                  <div 
+                    key={loc.id}
+                    className="group relative p-3 rounded-lg bg-slate-900/30 hover:bg-slate-900/50 border border-slate-700/30 hover:border-emerald-500/50 transition-all cursor-pointer"
+                  >
+                    {/* Status indicator */}
+                    <div className="absolute top-2 right-2 flex items-center gap-1">
+                      <div className={`w-2 h-2 rounded-full animate-pulse ${loc.status === 'active' ? 'bg-emerald-500' : 'bg-slate-500'}`}></div>
                     </div>
-                  </button>
+
+                    {/* Location info - clickable to center map */}
+                    <button
+                      onClick={() => centerMapOnLocation(loc.lat, loc.lng)}
+                      className="w-full text-left"
+                    >
+                      <div className="flex items-start gap-2 mb-2">
+                        <span className="text-lg flex-shrink-0">{loc.icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-white group-hover:text-emerald-300 transition-colors">{loc.name}</p>
+                          <p className="text-xs text-slate-400 truncate">{loc.address}</p>
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* Admin controls */}
+                    <div className="flex items-center gap-2 pt-2 border-t border-slate-700/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => setEditingLocation(loc)}
+                        className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs bg-slate-700/50 hover:bg-slate-700 text-slate-300 rounded transition-all"
+                        title="Edit"
+                      >
+                        <Edit size={14} />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteLocation(loc.id)}
+                        className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded transition-all"
+                        title="Delete"
+                      >
+                        <Trash2 size={14} />
+                        Delete
+                      </button>
+                    </div>
+                  </div>
                 ))}
               </div>
+
+              {/* Edit Location Modal */}
+              {editingLocation && (
+                <div className="mt-3 p-3 bg-slate-900/50 border border-blue-500/30 rounded-lg space-y-2">
+                  <p className="text-xs font-semibold text-blue-400">Edit Location</p>
+                  <input 
+                    type="text" 
+                    placeholder="Location name" 
+                    value={editingLocation.name}
+                    onChange={(e) => setEditingLocation({...editingLocation, name: e.target.value})}
+                    className="w-full px-2 py-1.5 text-xs bg-slate-900/30 border border-slate-700 rounded text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <input 
+                    type="text" 
+                    placeholder="Address" 
+                    value={editingLocation.address}
+                    onChange={(e) => setEditingLocation({...editingLocation, address: e.target.value})}
+                    className="w-full px-2 py-1.5 text-xs bg-slate-900/30 border border-slate-700 rounded text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={handleUpdateLocation}
+                      className="flex-1 px-2 py-1.5 text-xs bg-blue-500/80 hover:bg-blue-500 text-white font-semibold rounded transition-all"
+                    >
+                      Save
+                    </button>
+                    <button 
+                      onClick={() => setEditingLocation(null)}
+                      className="flex-1 px-2 py-1.5 text-xs bg-slate-700/50 hover:bg-slate-700 text-slate-300 font-semibold rounded transition-all"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
