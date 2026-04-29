@@ -72,10 +72,31 @@ export default function VehicleManagement() {
 
   const handleSubmit = async (data) => {
     try {
+      // Normalize category and condition for backend
+      const normalizedData = {
+        ...data,
+        category: data.category
+          ? data.category.charAt(0).toUpperCase() + data.category.slice(1).toLowerCase()
+          : '',
+        condition: data.condition
+          ? (data.condition === 'damaged' ? 'Poor' : data.condition.charAt(0).toUpperCase() + data.condition.slice(1).toLowerCase())
+          : 'Good',
+      }
       if (editingId) {
-        await updateVehicle(editingId, data)
+        await updateVehicle(editingId, normalizedData)
       } else {
-        await createVehicle(data)
+        console.log('[ADMIN] Submitting vehicle as admin')
+        console.log('[ADMIN] Payload:', normalizedData)
+        const response = await createVehicle(normalizedData)
+        console.log('[ADMIN] Response:', response)
+        if (response && (response.success || response.vehicle)) {
+          setIsModalOpen(false)
+          fetchVehicles()
+          alert('Vehicle added successfully!')
+        } else {
+          alert(response?.message || 'Failed to add vehicle')
+        }
+        return
       }
       setIsModalOpen(false)
       fetchVehicles()

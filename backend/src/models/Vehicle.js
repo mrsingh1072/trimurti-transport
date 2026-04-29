@@ -34,6 +34,19 @@ const vehicleSchema = new mongoose.Schema(
           default: false,
           index: true,
         },
+        deletedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+          default: null,
+        },
+        deletedByRole: {
+          type: String,
+          default: null,
+        },
+        deletedAt: {
+          type: Date,
+          default: null,
+        },
     location: {
       type: String,
       required: true,

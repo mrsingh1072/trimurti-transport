@@ -29,7 +29,7 @@ const updateVehicle = async (req, res) => {
 
 const deleteVehicle = async (req, res, next) => {
   try {
-    await vehicleService.deleteVehicle(req.params.id);
+    await vehicleService.deleteVehicle(req.params.id, req.user);
     res.json({ success: true, message: 'Vehicle deleted' });
   } catch (err) {
     if (err.statusCode === 400) {

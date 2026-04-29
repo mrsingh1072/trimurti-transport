@@ -41,17 +41,26 @@ const updateVehicle = async (id, data) => {
   return vehicle;
 };
 
-// Prevent delete if bookings exist
+// Prevent delete if active/pending/ongoing bookings exist
 const Booking = require('../models/Booking');
-const deleteVehicle = async (id) => {
-  // Check for bookings
-  const bookingCount = await Booking.countDocuments({ vehicle: id });
-  if (bookingCount > 0) {
-    const error = new Error('Vehicle cannot be deleted because booking history exists.');
+const deleteVehicle = async (id, user) => {
+  // Only allow delete if no active/pending/ongoing bookings
+  const activeBookings = await Booking.countDocuments({
+    vehicle: id,
+    status: { $in: ['pending', 'confirmed', 'ongoing'] }
+  });
+  if (activeBookings > 0) {
+    const error = new Error('Vehicle cannot be deleted while booking exists.');
     error.statusCode = 400;
     throw error;
   }
-  const vehicle = await Vehicle.findOneAndUpdate({ _id: id, isDeleted: false }, { isDeleted: true }, { new: true });
+  const update = {
+    isDeleted: true,
+    deletedBy: user?._id || null,
+    deletedByRole: user?.role || null,
+    deletedAt: new Date(),
+  };
+  const vehicle = await Vehicle.findOneAndUpdate({ _id: id, isDeleted: false }, update, { new: true });
   if (!vehicle) {
     const error = new Error('Vehicle not found');
     error.statusCode = 404;

@@ -329,6 +329,16 @@ export default function VehiclesPage() {
                     >
                       <Edit2 size={18} />
                     </button>
+                    <button
+                      onClick={() => {
+                        setDeletingVehicleId(vehicle._id)
+                        setShowDeleteConfirm(true)
+                      }}
+                      className="p-2 bg-red-500/20 text-red-400 rounded hover:bg-red-500/30 transition"
+                      title={`Delete vehicle '${vehicle.name}'`}
+                    >
+                      <Trash2 size={18} />
+                    </button>
                   </div>
                 </div>
 
@@ -445,7 +455,9 @@ export default function VehiclesPage() {
       <ConfirmDialog
         isOpen={showDeleteConfirm}
         title="Delete Vehicle"
-        message="Are you sure you want to delete this vehicle? This action cannot be undone."
+        message={`Are you sure you want to delete vehicle '${
+          vehicles.find((v) => v._id === deletingVehicleId)?.name || ''
+        }'? This action cannot be undone.`}
         confirmText="Delete"
         onConfirm={handleDeleteVehicle}
         onCancel={() => {
