@@ -5,13 +5,14 @@ const createVehicleSchema = Joi.object({
   category: Joi.string()
     .valid('Car', 'Bike', 'Truck', 'Bus', 'Tractor', 'JCB')
     .required(),
-  pricePerDay: Joi.number().positive().required(),
+  pricePerDay: Joi.number().min(500).required(),
   availability: Joi.boolean().optional().default(true),
   condition: Joi.string()
-    .valid('Good', 'Average', 'Poor')
+    .valid('Excellent', 'Good', 'Fair')
     .optional()
     .default('Good'),
   location: Joi.string().trim().required(),
+  isDeleted: Joi.boolean().optional().default(false),
 });
 
 const updateVehicleSchema = Joi.object({
@@ -19,12 +20,13 @@ const updateVehicleSchema = Joi.object({
   category: Joi.string()
     .valid('Car', 'Bike', 'Truck', 'Bus', 'Tractor', 'JCB')
     .optional(),
-  pricePerDay: Joi.number().positive().optional(),
+  pricePerDay: Joi.number().min(500).optional(),
   availability: Joi.boolean().optional(),
   condition: Joi.string()
-    .valid('Good', 'Average', 'Poor')
+    .valid('Excellent', 'Good', 'Fair')
     .optional(),
   location: Joi.string().trim().optional(),
+  isDeleted: Joi.boolean().optional(),
 });
 
 module.exports = { createVehicleSchema, updateVehicleSchema };

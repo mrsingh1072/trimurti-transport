@@ -3,23 +3,22 @@ import { createContext, useContext, useState, useEffect } from 'react'
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
-
-  // Initialize auth state from localStorage
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user')
-    const token = localStorage.getItem('authToken')
-    
-    if (storedUser && token) {
-      setUser(JSON.parse(storedUser))
+  const [user, setUser] = useState(() => {
+    const rawUser = localStorage.getItem('user')
+    if (!rawUser) return null
+    try {
+      return JSON.parse(rawUser)
+    } catch {
+      return null
     }
-    setLoading(false)
-  }, [])
+  })
+  const [loading, setLoading] = useState(false)
+
+  // No need for useEffect for initial load, state is set safely above
 
   const login = (userData, token) => {
     setUser(userData)
-    localStorage.setItem('authToken', token)
+    if (token) localStorage.setItem('authToken', token)
     localStorage.setItem('user', JSON.stringify(userData))
   }
 

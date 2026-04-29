@@ -86,14 +86,20 @@ export default function VehicleManagement() {
   }
 
   const handleDelete = async (vehicle) => {
-    if (confirm(`Delete ${vehicle.name}?`)) {
-      try {
-        await deleteVehicle(vehicle._id)
+    const input = prompt(`Type DELETE to confirm deletion of ${vehicle.name}`)
+    if (input !== 'DELETE') {
+      alert('Deletion cancelled. You must type DELETE to confirm.')
+      return
+    }
+    try {
+      const res = await deleteVehicle(vehicle._id)
+      if (res && res.success) {
         fetchVehicles()
-      } catch (err) {
-        console.error('Error deleting vehicle:', err)
-        alert('Failed to delete vehicle')
+      } else {
+        alert(res?.message || 'Failed to delete vehicle')
       }
+    } catch (err) {
+      alert(err?.response?.data?.message || 'Failed to delete vehicle')
     }
   }
 

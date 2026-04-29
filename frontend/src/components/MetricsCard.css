@@ -1,0 +1,104 @@
+/* Metrics Card Styles */
+
+.metrics-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  color: #fff;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.metrics-card:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.metrics-card.blue {
+  border-top: 3px solid #667eea;
+}
+
+.metrics-card.green {
+  border-top: 3px solid #38ef7d;
+}
+
+.metrics-card.orange {
+  border-top: 3px solid #f5a623;
+}
+
+.metrics-card.purple {
+  border-top: 3px solid #764ba2;
+}
+
+.metrics-card.red {
+  border-top: 3px solid #ff6b6b;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.icon {
+  font-size: 28px;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.8;
+}
+
+.card-body {
+  text-align: center;
+}
+
+.value {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.2;
+}
+
+.trend {
+  margin: 12px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.trend.positive {
+  color: #38ef7d;
+}
+
+.trend.negative {
+  color: #ff6b6b;
+}
+
+@media (max-width: 600px) {
+  .metrics-card {
+    padding: 16px;
+  }
+
+  .value {
+    font-size: 24px;
+  }
+
+  .card-header {
+    gap: 8px;
+  }
+
+  .icon {
+    font-size: 24px;
+  }
+}

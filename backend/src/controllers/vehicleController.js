@@ -1,8 +1,12 @@
 const vehicleService = require('../services/vehicleService');
 
-const createVehicle = async (req, res) => {
-  const vehicle = await vehicleService.createVehicle(req.body);
-  res.status(201).json({ message: 'Vehicle created', vehicle });
+const createVehicle = async (req, res, next) => {
+  try {
+    const vehicle = await vehicleService.createVehicle(req.body);
+    res.status(201).json({ success: true, vehicle });
+  } catch (err) {
+    next(err);
+  }
 };
 
 const getVehicles = async (req, res) => {
@@ -23,9 +27,16 @@ const updateVehicle = async (req, res) => {
   res.json({ message: 'Vehicle updated', vehicle });
 };
 
-const deleteVehicle = async (req, res) => {
-  await vehicleService.deleteVehicle(req.params.id);
-  res.json({ message: 'Vehicle deleted' });
+const deleteVehicle = async (req, res, next) => {
+  try {
+    await vehicleService.deleteVehicle(req.params.id);
+    res.json({ success: true, message: 'Vehicle deleted' });
+  } catch (err) {
+    if (err.statusCode === 400) {
+      return res.status(400).json({ success: false, message: err.message });
+    }
+    next(err);
+  }
 };
 
 const getVehicleStats = async (req, res) => {

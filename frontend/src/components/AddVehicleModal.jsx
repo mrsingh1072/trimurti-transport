@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { X } from 'lucide-react'
 
 const CATEGORIES = ['Car', 'Bike', 'Truck', 'Bus', 'Tractor', 'JCB']
-const CONDITIONS = ['Good', 'Average', 'Poor']
+const CONDITIONS = ['Excellent', 'Good', 'Fair']
 
 export default function AddVehicleModal({ isOpen, onClose, onSubmit, isLoading }) {
   const [formData, setFormData] = useState({
@@ -30,8 +30,8 @@ export default function AddVehicleModal({ isOpen, onClose, onSubmit, isLoading }
       alert('Vehicle name is required')
       return
     }
-    if (!formData.pricePerDay || formData.pricePerDay <= 0) {
-      alert('Price per day must be greater than 0')
+    if (!formData.pricePerDay || formData.pricePerDay < 500) {
+      alert('Price per day must be at least 500')
       return
     }
     if (!formData.location.trim()) {

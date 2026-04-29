@@ -4,9 +4,10 @@ const register = async (req, res) => {
   try {
     const { user, token } = await authService.register(req.body);
     res.status(201).json({
+      success: true,
       message: 'User registered successfully',
       user: { 
-        id: user._id, 
+        _id: user._id, 
         name: user.name, 
         email: user.email, 
         role: user.role,
@@ -26,9 +27,10 @@ const login = async (req, res) => {
   try {
     const { user, token } = await authService.login(req.body);
     res.json({
+      success: true,
       message: 'Logged in successfully',
       user: { 
-        id: user._id, 
+        _id: user._id, 
         name: user.name, 
         email: user.email, 
         role: user.role,

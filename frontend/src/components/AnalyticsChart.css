@@ -1,0 +1,33 @@
+/* Analytics Chart Styles */
+
+.analytics-chart {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.chart-container {
+  width: 100%;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chart-placeholder {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+}
+
+@media (max-width: 600px) {
+  .analytics-chart {
+    padding: 16px;
+  }
+
+  .chart-container {
+    min-height: 250px;
+  }
+}

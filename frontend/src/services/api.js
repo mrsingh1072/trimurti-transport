@@ -33,6 +33,19 @@ apiClient.interceptors.request.use(
   },
   error => Promise.reject(error)
 )
+// Auto logout on 401 Unauthorized
+apiClient.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response && error.response.status === 401) {
+      console.log('⛔ [API] 401 Unauthorized - Logging out and redirecting to login')
+      localStorage.removeItem('authToken')
+      localStorage.removeItem('user')
+      window.location.href = '/login'
+    }
+    return Promise.reject(error)
+  }
+)
 
 // Error handler
 const handleError = (error) => {
@@ -133,21 +146,10 @@ export const loginUser = async (credentials) => {
   try {
     console.log('\n🔑 [LOGIN] Sending credentials for:', credentials.email);
     const response = await apiClient.post('/auth/login', credentials)
-    
     if (response.data.token) {
-      console.log('✅ [LOGIN] Success - Token received');
-      console.log('   - Token length:', response.data.token.length);
-      console.log('   - User:', { 
-        id: response.data.user?.id,
-        email: response.data.user?.email,
-        role: response.data.user?.role,
-        status: response.data.user?.status
-      });
-      
-      // Store in localStorage
+      console.log('✅ [LOGIN SUCCESS TOKEN SAVED]');
       localStorage.setItem('authToken', response.data.token)
       localStorage.setItem('user', JSON.stringify(response.data.user))
-      console.log('   ✅ Token and user stored in localStorage');
     }
     return response.data
   } catch (error) {

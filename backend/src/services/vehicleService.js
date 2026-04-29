@@ -1,12 +1,14 @@
 const Vehicle = require('../models/Vehicle');
 
 const createVehicle = async (data) => {
+  // Always set isDeleted to false on create
+  data.isDeleted = false;
   const vehicle = await Vehicle.create(data);
   return vehicle;
 };
 
 const listVehicles = async ({ page = 1, limit = 10, category, location, availability }) => {
-  const query = {};
+  const query = { isDeleted: false };
   if (category) query.category = category;
   if (location) query.location = location;
   if (availability !== undefined) query.availability = availability === 'true';
@@ -27,10 +29,10 @@ const listVehicles = async ({ page = 1, limit = 10, category, location, availabi
   };
 };
 
-const getVehicleById = (id) => Vehicle.findById(id);
+const getVehicleById = (id) => Vehicle.findOne({ _id: id, isDeleted: false });
 
 const updateVehicle = async (id, data) => {
-  const vehicle = await Vehicle.findByIdAndUpdate(id, data, { new: true });
+  const vehicle = await Vehicle.findOneAndUpdate({ _id: id, isDeleted: false }, data, { new: true });
   if (!vehicle) {
     const error = new Error('Vehicle not found');
     error.statusCode = 404;
@@ -39,8 +41,17 @@ const updateVehicle = async (id, data) => {
   return vehicle;
 };
 
+// Prevent delete if bookings exist
+const Booking = require('../models/Booking');
 const deleteVehicle = async (id) => {
-  const vehicle = await Vehicle.findByIdAndDelete(id);
+  // Check for bookings
+  const bookingCount = await Booking.countDocuments({ vehicle: id });
+  if (bookingCount > 0) {
+    const error = new Error('Vehicle cannot be deleted because booking history exists.');
+    error.statusCode = 400;
+    throw error;
+  }
+  const vehicle = await Vehicle.findOneAndUpdate({ _id: id, isDeleted: false }, { isDeleted: true }, { new: true });
   if (!vehicle) {
     const error = new Error('Vehicle not found');
     error.statusCode = 404;
@@ -51,8 +62,8 @@ const deleteVehicle = async (id) => {
 
 const getVehicleStats = async () => {
   const [total, available] = await Promise.all([
-    Vehicle.countDocuments(),
-    Vehicle.countDocuments({ availability: true }),
+    Vehicle.countDocuments({ isDeleted: false }),
+    Vehicle.countDocuments({ availability: true, isDeleted: false }),
   ]);
   return {
     totalVehicles: total,
@@ -64,8 +75,8 @@ const getVehicleStats = async () => {
 
 const getVehicleCount = async () => {
   const [total, available] = await Promise.all([
-    Vehicle.countDocuments(),
-    Vehicle.countDocuments({ availability: true }),
+    Vehicle.countDocuments({ isDeleted: false }),
+    Vehicle.countDocuments({ availability: true, isDeleted: false }),
   ]);
   return { total, available };
 };

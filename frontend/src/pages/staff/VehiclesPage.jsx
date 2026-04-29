@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { RotateCcw, ChevronDown, Plus, Edit2, Trash2, Filter } from 'lucide-react'
 import StaffLayout from '../../components/StaffLayout'
-import { getVehicles, createVehicle, updateVehicle, deleteVehicle } from '../../services/api'
+import { getVehicles, createVehicle, updateVehicle } from '../../services/api'
 import AddVehicleModal from '../../components/AddVehicleModal'
 import EditVehicleModal from '../../components/EditVehicleModal'
 import ConfirmDialog from '../../components/ConfirmDialog'
@@ -328,15 +328,6 @@ export default function VehiclesPage() {
                       className="p-2 bg-blue-500/20 text-blue-400 rounded hover:bg-blue-500/30 transition"
                     >
                       <Edit2 size={18} />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setDeletingVehicleId(vehicle._id)
-                        setShowDeleteConfirm(true)
-                      }}
-                      className="p-2 bg-red-500/20 text-red-400 rounded hover:bg-red-500/30 transition"
-                    >
-                      <Trash2 size={18} />
                     </button>
                   </div>
                 </div>
