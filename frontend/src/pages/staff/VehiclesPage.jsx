@@ -7,11 +7,6 @@ import EditVehicleModal from '../../components/EditVehicleModal'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import Toast from '../../components/Toast'
 
-
-
-
-
-
 const CATEGORIES = ['Car', 'Bike', 'Truck', 'Bus', 'Tractor', 'JCB']
 
 export default function VehiclesPage() {
