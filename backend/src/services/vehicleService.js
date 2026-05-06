@@ -44,13 +44,16 @@ const updateVehicle = async (id, data) => {
 // Prevent delete if active/pending/ongoing bookings exist
 const Booking = require('../models/Booking');
 const deleteVehicle = async (id, user) => {
-  // Only allow delete if no active/pending/ongoing bookings
+  const now = new Date();
+
+  // Only block delete for active or upcoming bookings. Historical records should not block soft delete.
   const activeBookings = await Booking.countDocuments({
     vehicle: id,
-    status: { $in: ['pending', 'confirmed', 'ongoing'] }
+    status: { $in: ['pending', 'confirmed', 'ongoing'] },
+    endDate: { $gte: now },
   });
   if (activeBookings > 0) {
-    const error = new Error('Vehicle cannot be deleted while booking exists.');
+    const error = new Error('Vehicle cannot be deleted because it has active or upcoming bookings.');
     error.statusCode = 400;
     throw error;
   }

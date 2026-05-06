@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react'
 import { RotateCcw, ChevronDown, Plus, Edit2, Trash2, Filter } from 'lucide-react'
 import StaffLayout from '../../components/StaffLayout'
-import { getVehicles, createVehicle, updateVehicle } from '../../services/api'
+import { getVehicles, createVehicle, updateVehicle, deleteVehicle } from '../../services/api'
 import AddVehicleModal from '../../components/AddVehicleModal'
 import EditVehicleModal from '../../components/EditVehicleModal'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import Toast from '../../components/Toast'
+
+
+
+
+
 
 const CATEGORIES = ['Car', 'Bike', 'Truck', 'Bus', 'Tractor', 'JCB']
 
@@ -115,7 +120,10 @@ export default function VehiclesPage() {
       fetchVehicles()
     } catch (err) {
       console.error('Error deleting vehicle:', err)
-      setToast({ type: 'error', message: 'Failed to delete vehicle' })
+      setToast({
+        type: 'error',
+        message: err?.response?.data?.message || 'Failed to delete vehicle',
+      })
     } finally {
       setIsDeleting(false)
     }
