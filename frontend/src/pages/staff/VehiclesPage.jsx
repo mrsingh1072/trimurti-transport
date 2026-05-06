@@ -7,7 +7,7 @@ import EditVehicleModal from '../../components/EditVehicleModal'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import Toast from '../../components/Toast'
 
-const CATEGORIES = ['Car', 'Bike', 'Truck', 'Bus', 'Tractor', 'JCB']
+const CATEGORIES = ['Car', 'Bike', 'Truck', 'Bus', 'Tractor', 'JCB', 'Cycle'] 
 
 export default function VehiclesPage() {
   const [vehicles, setVehicles] = useState([])
