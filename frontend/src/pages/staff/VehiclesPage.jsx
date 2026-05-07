@@ -9,9 +9,6 @@ import Toast from '../../components/Toast'
 
 const CATEGORIES = ['Car', 'Bike', 'Truck', 'Bus', 'Tractor', 'JCB']
 
-
-
-
 export default function VehiclesPage() {
   const [vehicles, setVehicles] = useState([])
   const [filteredVehicles, setFilteredVehicles] = useState([])
