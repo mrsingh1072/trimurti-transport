@@ -8,6 +8,12 @@ export default function DataTable({ columns, data, actions, loading }) {
     )
   }
 
+
+
+
+
+  
+
   if (data.length === 0) {
     return (
       <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-8 text-center">
